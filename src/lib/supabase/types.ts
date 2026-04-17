@@ -535,6 +535,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_company_and_first_tester: {
+        Args: {
+          p_company_address_line_1?: string
+          p_company_address_line_2?: string
+          p_company_city?: string
+          p_company_name: string
+          p_company_phone?: string
+          p_company_state?: string
+          p_company_website?: string
+          p_company_zip?: string
+          p_first_name: string
+          p_last_name: string
+          p_license_expiration: string
+          p_license_issuing_authority?: string
+          p_license_number: string
+          p_next_due_calculation_method?: string
+          p_test_gauge_calibration_date?: string
+          p_test_gauge_serial?: string
+          p_tester_phone?: string
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       user_company_id: { Args: never; Returns: string }
