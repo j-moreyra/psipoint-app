@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/app/field";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
+import { geocodeAndStampLocation } from "./[id]/locations/actions";
 import {
   newCustomerSchema,
   toCreateCustomerWithLocationArgs,
@@ -68,6 +69,19 @@ export function NewCustomerForm({ companyId }: { companyId: string }) {
         return;
       }
       customerId = data;
+
+      // Geocode the just-created service location. The RPC doesn't
+      // return the location id (returns customer_id only), so we look
+      // it up — a newly-created customer has exactly one location from
+      // this path, so .single() is safe. Fire-and-forget.
+      const { data: loc } = await supabase
+        .from("service_locations")
+        .select("id")
+        .eq("customer_id", customerId)
+        .single();
+      if (loc?.id) {
+        void geocodeAndStampLocation(loc.id);
+      }
     } else {
       // Plain customer insert; service location gets added later from the
       // customer detail page.

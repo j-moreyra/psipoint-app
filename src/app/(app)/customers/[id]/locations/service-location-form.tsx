@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Field } from "@/components/app/field";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
+import { geocodeAndStampLocation } from "./actions";
 import {
   hazardTypes,
   hazardTypeLabels,
@@ -87,22 +88,28 @@ export function ServiceLocationForm(props: Props) {
     const supabase = createClient();
 
     if (props.mode === "create") {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("service_locations")
         .insert(
           toServiceLocationInsert(values, {
             companyId: props.companyId,
             customerId: props.customerId,
           }),
-        );
+        )
+        .select("id")
+        .single();
       setSubmitting(false);
 
-      if (error) {
+      if (error || !data) {
         toast.error(dbErrorMessage(error, "Couldn't create the location."));
         return;
       }
 
       toast.success("Location created.");
+      // Fire-and-forget: geocode in the background, don't block nav. The
+      // user sees success immediately; lat/lng lands on the row when the
+      // action finishes (saved via a separate round-trip from the server).
+      void geocodeAndStampLocation(data.id);
       router.push(`/customers/${props.customerId}`);
       return;
     }
@@ -120,6 +127,10 @@ export function ServiceLocationForm(props: Props) {
 
     toast.success("Location saved.");
     reset(values);
+    // Re-geocode on edit in case the address changed. Server action
+    // checks the current row's address from scratch so we don't need to
+    // diff client-side.
+    void geocodeAndStampLocation(props.locationId);
     router.refresh();
   }
 
