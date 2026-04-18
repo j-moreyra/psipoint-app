@@ -51,6 +51,18 @@ describe("customerSchema", () => {
         .success,
     ).toBe(false);
   });
+
+  it("accepts a valid email", () => {
+    expect(
+      customerSchema.safeParse({ ...validCustomer, email: "a@b.co" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects garbage in email", () => {
+    expect(
+      customerSchema.safeParse({ ...validCustomer, email: "garbage" }).success,
+    ).toBe(false);
+  });
 });
 
 describe("toCustomerUpdate", () => {

@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { customerDisplayName } from "./customers";
+import type { DbClient } from "./client";
+import { customerDisplayName, getCustomer } from "./customers";
+
+// Stub that throws if any method is accessed. Used to prove guards
+// short-circuit before hitting the DB.
+const throwingDb = new Proxy({}, {
+  get() {
+    throw new Error("DB should not be called");
+  },
+}) as unknown as DbClient;
+
+describe("getCustomer", () => {
+  it("returns null for non-UUID id without touching the DB", async () => {
+    await expect(getCustomer(throwingDb, "not-a-uuid")).resolves.toBeNull();
+  });
+
+  it("returns null for an empty id without touching the DB", async () => {
+    await expect(getCustomer(throwingDb, "")).resolves.toBeNull();
+  });
+});
 
 describe("customerDisplayName", () => {
   it("prefers company_name", () => {

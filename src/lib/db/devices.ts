@@ -1,10 +1,10 @@
-import type { DbClient } from "@/lib/db/client";
+import { isUuid, type DbClient } from "@/lib/db/client";
 
 const LIST_COLUMNS =
-  "id, serial_number, manufacturer, model, size, type, location_description, last_tested_date, last_test_result, next_test_due_date, next_due_override, is_active";
+  "id, serial_number, manufacturer, model, size, type, location_description, last_tested_date, last_test_result, next_test_due_date, next_due_override, is_active" as const;
 
 const DETAIL_COLUMNS =
-  "id, service_location_id, customer_id, company_id, serial_number, manufacturer, model, size, type, location_description, install_date, service_type, last_tested_date, last_test_result, next_test_due_date, next_due_override, is_active";
+  "id, service_location_id, customer_id, company_id, serial_number, manufacturer, model, size, type, location_description, install_date, service_type, last_tested_date, last_test_result, next_test_due_date, next_due_override, is_active" as const;
 
 export type DeviceListRow = {
   id: string;
@@ -33,6 +33,7 @@ export async function listDevicesForLocation(
   db: DbClient,
   serviceLocationId: string,
 ): Promise<DeviceListRow[]> {
+  if (!isUuid(serviceLocationId)) return [];
   const { data, error } = await db
     .from("devices")
     .select(LIST_COLUMNS)
@@ -47,6 +48,7 @@ export async function getDevice(
   db: DbClient,
   id: string,
 ): Promise<DeviceDetailRow | null> {
+  if (!isUuid(id)) return null;
   const { data, error } = await db
     .from("devices")
     .select(DETAIL_COLUMNS)

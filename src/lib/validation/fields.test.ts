@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   nullIfEmpty,
   optionalDate,
+  optionalEmail,
   optionalStateCode,
   optionalText,
   requiredDate,
@@ -125,6 +126,35 @@ describe("optionalDate", () => {
 
   it("rejects malformed", () => {
     expect(() => optionalDate.parse("not a date")).toThrow();
+  });
+});
+
+describe("optionalEmail", () => {
+  it("accepts empty", () => {
+    expect(optionalEmail.parse("")).toBe("");
+  });
+
+  it("trims whitespace", () => {
+    expect(optionalEmail.parse("  a@b.co  ")).toBe("a@b.co");
+  });
+
+  it("accepts a plausible email", () => {
+    expect(optionalEmail.parse("jane.doe+tag@example.com")).toBe(
+      "jane.doe+tag@example.com",
+    );
+  });
+
+  it("rejects garbage", () => {
+    expect(() => optionalEmail.parse("garbage")).toThrow();
+  });
+
+  it("rejects @-less input", () => {
+    expect(() => optionalEmail.parse("no-at-sign.com")).toThrow();
+  });
+
+  it("rejects trailing-space-only tokens", () => {
+    // "   " after trim is empty → accepted
+    expect(optionalEmail.parse("   ")).toBe("");
   });
 });
 

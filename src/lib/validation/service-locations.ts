@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   nullIfEmpty,
+  optionalEmail,
   optionalText,
   requiredStateCode,
   requiredText,
@@ -55,7 +56,7 @@ export const serviceLocationSchema = z.object({
   on_site_contact_first_name: optionalText,
   on_site_contact_last_name: optionalText,
   on_site_contact_phone: optionalText,
-  on_site_contact_email: optionalText,
+  on_site_contact_email: optionalEmail,
   water_district: optionalText,
   access_notes: optionalText,
   hazard_type: optionalHazardType,

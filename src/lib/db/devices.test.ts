@@ -1,5 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { deviceStatus } from "./devices";
+import type { DbClient } from "./client";
+import {
+  deviceStatus,
+  getDevice,
+  listDevicesForLocation,
+} from "./devices";
+
+const throwingDb = new Proxy({}, {
+  get() {
+    throw new Error("DB should not be called");
+  },
+}) as unknown as DbClient;
+
+describe("getDevice", () => {
+  it("returns null for non-UUID id without touching the DB", async () => {
+    await expect(getDevice(throwingDb, "not-a-uuid")).resolves.toBeNull();
+  });
+});
+
+describe("listDevicesForLocation", () => {
+  it("returns [] for non-UUID serviceLocationId without touching the DB", async () => {
+    await expect(
+      listDevicesForLocation(throwingDb, "not-a-uuid"),
+    ).resolves.toEqual([]);
+  });
+});
 
 // Anchor "today" so these assertions stay stable across time zones + CI.
 const TODAY = new Date("2026-04-18T12:00:00");

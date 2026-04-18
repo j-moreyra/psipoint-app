@@ -69,6 +69,24 @@ describe("serviceLocationSchema", () => {
         .success,
     ).toBe(true);
   });
+
+  it("accepts a valid on_site_contact_email", () => {
+    expect(
+      serviceLocationSchema.safeParse({
+        ...valid,
+        on_site_contact_email: "onsite@example.com",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects garbage in on_site_contact_email", () => {
+    expect(
+      serviceLocationSchema.safeParse({
+        ...valid,
+        on_site_contact_email: "garbage",
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("toServiceLocationUpdate", () => {

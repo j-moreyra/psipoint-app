@@ -1,5 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { serviceLocationDisplayName } from "./service-locations";
+import type { DbClient } from "./client";
+import {
+  getServiceLocation,
+  listLocationsForCustomer,
+  serviceLocationDisplayName,
+} from "./service-locations";
+
+const throwingDb = new Proxy({}, {
+  get() {
+    throw new Error("DB should not be called");
+  },
+}) as unknown as DbClient;
+
+describe("getServiceLocation", () => {
+  it("returns null for non-UUID id without touching the DB", async () => {
+    await expect(
+      getServiceLocation(throwingDb, "not-a-uuid"),
+    ).resolves.toBeNull();
+  });
+});
+
+describe("listLocationsForCustomer", () => {
+  it("returns [] for non-UUID customerId without touching the DB", async () => {
+    await expect(
+      listLocationsForCustomer(throwingDb, "not-a-uuid"),
+    ).resolves.toEqual([]);
+  });
+});
 
 describe("serviceLocationDisplayName", () => {
   it("prefers nickname", () => {

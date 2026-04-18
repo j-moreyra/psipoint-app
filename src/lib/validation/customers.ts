@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   nullIfEmpty,
+  optionalEmail,
   optionalStateCode,
   optionalText,
 } from "@/lib/validation/fields";
@@ -13,7 +14,7 @@ const customerBase = z.object({
   contact_first_name: optionalText,
   contact_last_name: optionalText,
   company_name: optionalText,
-  email: optionalText,
+  email: optionalEmail,
   phone: optionalText,
   billing_address_line_1: optionalText,
   billing_address_line_2: optionalText,

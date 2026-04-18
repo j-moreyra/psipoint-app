@@ -1,13 +1,14 @@
-import type { DbClient } from "@/lib/db/client";
+import { isUuid, type DbClient } from "@/lib/db/client";
 
 // Columns selected for list views. Keep the shape narrow — the list
-// renders names + city + a per-row link only.
+// renders names + city + a per-row link only. `as const` preserves the
+// literal so Supabase's generics infer the exact row shape.
 const CUSTOMER_LIST_COLUMNS =
-  "id, company_name, contact_first_name, contact_last_name, billing_city, billing_state, is_active";
+  "id, company_name, contact_first_name, contact_last_name, billing_city, billing_state, is_active" as const;
 
 // Full columns for the detail + edit forms.
 const CUSTOMER_DETAIL_COLUMNS =
-  "id, company_name, contact_first_name, contact_last_name, email, phone, billing_address_line_1, billing_address_line_2, billing_city, billing_state, billing_zip, notes, is_active";
+  "id, company_name, contact_first_name, contact_last_name, email, phone, billing_address_line_1, billing_address_line_2, billing_city, billing_state, billing_zip, notes, is_active" as const;
 
 export type CustomerListRow = {
   id: string;
@@ -43,6 +44,7 @@ export async function getCustomer(
   db: DbClient,
   id: string,
 ): Promise<CustomerDetailRow | null> {
+  if (!isUuid(id)) return null;
   const { data, error } = await db
     .from("customers")
     .select(CUSTOMER_DETAIL_COLUMNS)

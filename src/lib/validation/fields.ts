@@ -20,6 +20,15 @@ export const requiredStateCode = z
   .trim()
   .regex(/^[A-Za-z]{2}$/, "Use the 2-letter state code");
 
+// Lenient email accepting an empty string. We don't want to block form
+// submit on someone who hasn't captured an email yet, but we do want to
+// catch obvious typos before Phase 4's Resend send-time failure. Uses
+// zod 4's top-level z.email().
+export const optionalEmail = z
+  .string()
+  .trim()
+  .refine((v) => v === "" || z.email().safeParse(v).success, "Invalid email");
+
 export const requiredDate = z
   .string()
   .trim()
