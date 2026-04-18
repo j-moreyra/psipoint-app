@@ -20,9 +20,6 @@ const validInput: OnboardingInput = {
   tester_phone: "",
   license_number: "LIC-123",
   license_expiration: "2027-01-01",
-  license_issuing_authority: "",
-  test_gauge_serial: "",
-  test_gauge_calibration_date: "",
 };
 
 describe("onboardingSchema", () => {
@@ -94,6 +91,12 @@ describe("toOnboardingRpcArgs", () => {
     const args = toOnboardingRpcArgs(validInput);
     expect(args.p_company_address_line_1).toBeUndefined();
     expect(args.p_tester_phone).toBeUndefined();
+  });
+
+  it("does not send fields onboarding omits (issuing authority, gauge)", () => {
+    const args = toOnboardingRpcArgs(validInput) as Record<string, unknown>;
+    expect(args.p_license_issuing_authority).toBeUndefined();
+    expect(args.p_test_gauge_serial).toBeUndefined();
     expect(args.p_test_gauge_calibration_date).toBeUndefined();
   });
 

@@ -44,9 +44,6 @@ export function OnboardingForm() {
       tester_phone: "",
       license_number: "",
       license_expiration: "",
-      license_issuing_authority: "",
-      test_gauge_serial: "",
-      test_gauge_calibration_date: "",
     },
   });
 
@@ -299,42 +296,11 @@ export function OnboardingForm() {
               </Field>
             </div>
 
-            <Field
-              id="license_issuing_authority"
-              label="Issuing authority"
-              error={errors.license_issuing_authority?.message}
-              hint="State or jurisdiction that issued your license."
-            >
-              <Input
-                id="license_issuing_authority"
-                {...register("license_issuing_authority")}
-              />
-            </Field>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field
-                id="test_gauge_serial"
-                label="Test gauge serial"
-                error={errors.test_gauge_serial?.message}
-                hint="Pre-fills on every test form."
-              >
-                <Input
-                  id="test_gauge_serial"
-                  {...register("test_gauge_serial")}
-                />
-              </Field>
-              <Field
-                id="test_gauge_calibration_date"
-                label="Gauge calibrated"
-                error={errors.test_gauge_calibration_date?.message}
-              >
-                <Input
-                  id="test_gauge_calibration_date"
-                  type="date"
-                  {...register("test_gauge_calibration_date")}
-                />
-              </Field>
-            </div>
+            <p className="pt-2 text-xs text-muted-foreground">
+              You can add your issuing authority and test gauge details in{" "}
+              <span className="font-medium text-foreground">Settings</span>{" "}
+              before your first test.
+            </p>
           </div>
 
           <div className="mt-6 flex items-center justify-between gap-3">
