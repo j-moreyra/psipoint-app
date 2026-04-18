@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { dbErrorMessage } from "@/lib/db/errors";
 import {
   profileSchema,
   toProfileUpdate,
@@ -87,7 +88,7 @@ export function ProfileForm({
     setSubmitting(false);
 
     if (error) {
-      toast.error(error.message || "Couldn't save your profile.");
+      toast.error(dbErrorMessage(error, "Couldn't save your profile."));
       return;
     }
 
@@ -99,9 +100,10 @@ export function ProfileForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4 rounded-lg border bg-card p-6 shadow-sm"
+      className="rounded-lg border bg-card p-6 shadow-sm"
       noValidate
     >
+      <fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">
       <Field id="email" label="Email">
         <Input id="email" value={email} disabled readOnly />
       </Field>
@@ -203,6 +205,7 @@ export function ProfileForm({
           {submitting ? "Saving…" : "Save changes"}
         </Button>
       </div>
+      </fieldset>
     </form>
   );
 }

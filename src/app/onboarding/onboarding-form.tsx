@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { dbErrorMessage } from "@/lib/db/errors";
 import {
   dueDateMethodLabels,
   dueDateMethods,
@@ -17,8 +18,6 @@ import {
   toOnboardingRpcArgs,
   type OnboardingInput,
 } from "@/lib/validation/onboarding";
-
-const FALLBACK_ERROR = "Something went wrong. Please try again.";
 
 function Field({
   id,
@@ -100,7 +99,9 @@ export function OnboardingForm() {
     setSubmitting(false);
 
     if (error) {
-      toast.error(error.message || FALLBACK_ERROR);
+      toast.error(
+        dbErrorMessage(error, "Couldn't finish setup. Please try again."),
+      );
       return;
     }
 
@@ -136,6 +137,7 @@ export function OnboardingForm() {
           className="rounded-lg border bg-card p-6 shadow-sm"
           noValidate
         >
+          <fieldset disabled={submitting} className="contents">
           {/* Step 1 — stays mounted so react-hook-form state persists on back nav. */}
           <div className={step === 0 ? "space-y-4" : "hidden"}>
             <h2 className="text-lg font-semibold">About your company</h2>
@@ -410,6 +412,7 @@ export function OnboardingForm() {
               </Button>
             )}
           </div>
+          </fieldset>
         </form>
       </div>
     </div>

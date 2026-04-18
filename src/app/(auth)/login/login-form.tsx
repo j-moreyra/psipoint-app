@@ -58,9 +58,9 @@ export function LoginForm({ next }: { next: string }) {
     >
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4"
         noValidate
       >
+        <fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -101,6 +101,7 @@ export function LoginForm({ next }: { next: string }) {
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "Signing in…" : "Sign in"}
         </Button>
+        </fieldset>
       </form>
     </AuthShell>
   );

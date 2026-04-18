@@ -54,9 +54,9 @@ export default function ResetPasswordUpdatePage() {
     >
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4"
         noValidate
       >
+        <fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">
         <div className="space-y-2">
           <Label htmlFor="password">New password</Label>
           <Input
@@ -79,6 +79,7 @@ export default function ResetPasswordUpdatePage() {
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "Updating…" : "Update password"}
         </Button>
+        </fieldset>
       </form>
     </AuthShell>
   );

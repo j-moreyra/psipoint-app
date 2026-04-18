@@ -74,9 +74,9 @@ export default function SignupPage() {
     >
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4"
         noValidate
       >
+        <fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -113,6 +113,7 @@ export default function SignupPage() {
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? "Creating account…" : "Create account"}
         </Button>
+        </fieldset>
       </form>
     </AuthShell>
   );

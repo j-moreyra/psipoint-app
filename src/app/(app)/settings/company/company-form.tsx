@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { dbErrorMessage } from "@/lib/db/errors";
 import {
   companySchema,
   toCompanyUpdate,
@@ -81,7 +82,7 @@ export function CompanyForm({
     setSubmitting(false);
 
     if (error) {
-      toast.error(error.message || "Couldn't save company details.");
+      toast.error(dbErrorMessage(error, "Couldn't save company details."));
       return;
     }
 
@@ -93,9 +94,10 @@ export function CompanyForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-4 rounded-lg border bg-card p-6 shadow-sm"
+      className="rounded-lg border bg-card p-6 shadow-sm"
       noValidate
     >
+      <fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">
       <Field
         id="name"
         label="Company name"
@@ -212,6 +214,7 @@ export function CompanyForm({
           {submitting ? "Saving…" : "Save changes"}
         </Button>
       </div>
+      </fieldset>
     </form>
   );
 }

@@ -42,7 +42,12 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    // Only forward the originally-requested path as `next` when it's a
+    // safe relative path. Prevents seeding the login URL with anything
+    // we wouldn't want to round-trip through a redirect.
+    if (pathname.startsWith("/") && !pathname.startsWith("//")) {
+      url.searchParams.set("next", pathname);
+    }
     return NextResponse.redirect(url);
   }
 

@@ -12,7 +12,7 @@ export default async function CompanySettingsPage() {
     .select(
       "id, name, address_line_1, address_line_2, city, state, zip, phone, website, next_due_calculation_method",
     )
-    .single();
+    .maybeSingle();
 
   if (!company) {
     throw new Error("Missing company record");
