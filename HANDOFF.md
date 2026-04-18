@@ -1,6 +1,7 @@
 # HANDOFF.md — BackFLO
 
 > Last updated: 2026-04-18. Phase 2 complete.
+> Next update: at Phase 3 completion (unified search + test entry + dashboard shipped).
 
 ## 1. Project Overview
 
@@ -60,6 +61,12 @@
 - 4 migrations applied to Supabase (+ `20260418000000_create_customer_with_location_rpc.sql`)
 - 197 Vitest tests passing (was 78)
 - `tsc --noEmit` + `npm run build` green
+
+**Dev DB state (post-seed):**
+- Seeded via `scripts/seed.ts` on 2026-04-18
+- Populated: 5 customers / 15 service locations / 23 devices
+- Seed target company UUID: `16eff77e-681a-4b4f-967e-2cc246e9a6b2`
+- Reseed command: `ALLOW_SEEDING=true SEED_COMPANY_ID=16eff77e-681a-4b4f-967e-2cc246e9a6b2 npx tsx scripts/seed.ts`
 
 **Routes currently shipped:**
 ```
@@ -160,7 +167,7 @@ The client sends 13 of the 17 params; the other 4 (`next_due_calculation_method`
 - **Primary URL:** https://backflo-app.netlify.app
 - **Dashboard:** https://app.netlify.com/projects/backflo-app
 - **Team:** `moreyraj13` (Pro plan, team ID `699f4c962c9e3832fb5f816c`)
-- **GitHub integration:** linked to `j-moreyra/backflo-app`; pushes to `main` auto-deploy prod; PRs get deploy previews
+- **GitHub integration:** Netlify site linked to `j-moreyra/backflo-app`. Pushes to `main` auto-deploy the primary URL; open PRs get ephemeral previews at `deploy-preview-N--backflo-app.netlify.app`. No manual deploys expected.
 - **Build:** `npm run build`, publish `.next`, Node 22
 - **Config:** [`netlify.toml`](netlify.toml) — Netlify's Next.js runtime v5 is auto-detected; no plugin declaration needed
 
@@ -352,7 +359,7 @@ Ordered by dependency / priority.
 
 - **GitHub repo:** https://github.com/j-moreyra/backflo-app (public) ✓
 - **Supabase:** `backflo-dev` project active ✓
-- **Netlify:** deploy preview active at `deploy-preview-2--backflo-app.netlify.app`; production site not yet connected
+- **Netlify:** site linked to `j-moreyra/backflo-app`. Pushes to `main` auto-deploy the primary URL at https://backflo-app.netlify.app; open PRs get ephemeral previews at `deploy-preview-N--backflo-app.netlify.app`. No manual deploys expected.
 - **Resend:** not yet set up (Phase 4)
 - **Stripe:** not yet set up (post-MVP)
 
