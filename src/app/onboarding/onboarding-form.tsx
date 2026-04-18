@@ -11,8 +11,6 @@ import { Field } from "@/components/app/field";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
 import {
-  dueDateMethodLabels,
-  dueDateMethods,
   onboardingSchema,
   step1Fields,
   toOnboardingRpcArgs,
@@ -41,7 +39,6 @@ export function OnboardingForm() {
       company_zip: "",
       company_phone: "",
       company_website: "",
-      next_due_calculation_method: "test_date_plus_year",
       first_name: "",
       last_name: "",
       tester_phone: "",
@@ -225,24 +222,6 @@ export function OnboardingForm() {
               </Field>
             </div>
 
-            <Field
-              id="next_due_calculation_method"
-              label="Next-test-due rule"
-              error={errors.next_due_calculation_method?.message}
-              hint="Change later in Settings. Most testers keep the default."
-            >
-              <select
-                id="next_due_calculation_method"
-                className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                {...register("next_due_calculation_method")}
-              >
-                {dueDateMethods.map((m) => (
-                  <option key={m} value={m}>
-                    {dueDateMethodLabels[m]}
-                  </option>
-                ))}
-              </select>
-            </Field>
           </div>
 
           {/* Step 2 */}

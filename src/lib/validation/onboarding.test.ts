@@ -15,7 +15,6 @@ const validInput: OnboardingInput = {
   company_zip: "",
   company_phone: "",
   company_website: "",
-  next_due_calculation_method: "test_date_plus_year",
   first_name: "Jane",
   last_name: "Doe",
   tester_phone: "",
@@ -67,20 +66,12 @@ describe("onboardingSchema", () => {
     ).toBe(false);
   });
 
-  it("rejects an unknown due-date method", () => {
-    expect(
-      onboardingSchema.safeParse({
-        ...validInput,
-        next_due_calculation_method: "made_up" as unknown as (typeof validInput)["next_due_calculation_method"],
-      }).success,
-    ).toBe(false);
-  });
 });
 
 describe("step1Fields", () => {
   it("contains all company-side field names and no tester fields", () => {
     expect(step1Fields).toContain("company_name");
-    expect(step1Fields).toContain("next_due_calculation_method");
+    expect(step1Fields).toContain("company_address_line_1");
     expect(step1Fields).not.toContain("first_name");
     expect(step1Fields).not.toContain("license_number");
   });
@@ -92,7 +83,11 @@ describe("toOnboardingRpcArgs", () => {
     expect(args.p_company_name).toBe("Acme Testing");
     expect(args.p_first_name).toBe("Jane");
     expect(args.p_license_expiration).toBe("2027-01-01");
-    expect(args.p_next_due_calculation_method).toBe("test_date_plus_year");
+  });
+
+  it("does not send next_due_calculation_method (Postgres applies default)", () => {
+    const args = toOnboardingRpcArgs(validInput) as Record<string, unknown>;
+    expect(args.p_next_due_calculation_method).toBeUndefined();
   });
 
   it("drops empty optional strings to undefined so PG applies defaults", () => {

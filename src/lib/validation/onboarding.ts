@@ -24,6 +24,9 @@ export const dueDateMethodLabels: Record<DueDateMethod, string> = {
   custom: "Custom (set per-device)",
 };
 
+// next_due_calculation_method is NOT collected during onboarding — new
+// companies get the Postgres default ('test_date_plus_year'). Testers
+// who need a different rule can change it later in /settings/company.
 export const onboardingSchema = z.object({
   // company
   company_name: requiredText("Company name is required"),
@@ -34,7 +37,6 @@ export const onboardingSchema = z.object({
   company_zip: optionalText,
   company_phone: optionalText,
   company_website: optionalText,
-  next_due_calculation_method: z.enum(dueDateMethods),
   // tester
   first_name: requiredText("First name is required"),
   last_name: requiredText("Last name is required"),
@@ -59,12 +61,12 @@ export const step1Fields = [
   "company_zip",
   "company_phone",
   "company_website",
-  "next_due_calculation_method",
 ] as const satisfies readonly (keyof OnboardingInput)[];
 
 // Shape the validated form values into the RPC argument object Supabase
 // expects. Empty strings become undefined so Postgres applies the param
-// defaults.
+// defaults (including next_due_calculation_method, which onboarding
+// doesn't collect).
 export function toOnboardingRpcArgs(v: OnboardingInput) {
   return {
     p_company_name: v.company_name,
@@ -79,7 +81,6 @@ export function toOnboardingRpcArgs(v: OnboardingInput) {
     p_company_zip: undefinedIfEmpty(v.company_zip),
     p_company_phone: undefinedIfEmpty(v.company_phone),
     p_company_website: undefinedIfEmpty(v.company_website),
-    p_next_due_calculation_method: v.next_due_calculation_method,
     p_tester_phone: undefinedIfEmpty(v.tester_phone),
     p_license_issuing_authority: undefinedIfEmpty(v.license_issuing_authority),
     p_test_gauge_serial: undefinedIfEmpty(v.test_gauge_serial),
