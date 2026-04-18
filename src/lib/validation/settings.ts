@@ -1,29 +1,19 @@
 import { z } from "zod";
 import { dueDateMethods } from "@/lib/validation/onboarding";
-
-const required = (msg: string) => z.string().trim().min(1, msg);
-const optionalText = z.string().trim();
-
-const optionalStateCode = z.string().trim().refine(
-  (v) => v === "" || /^[A-Za-z]{2}$/.test(v),
-  "Use the 2-letter state code",
-);
-
-const requiredDate = z
-  .string()
-  .trim()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Required");
-
-const optionalDate = z.string().trim().refine(
-  (v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v),
-  "Invalid date",
-);
+import {
+  nullIfEmpty,
+  optionalDate,
+  optionalStateCode,
+  optionalText,
+  requiredDate,
+  requiredText,
+} from "@/lib/validation/fields";
 
 // ---------------------------------------------------------------------------
 // Company settings
 // ---------------------------------------------------------------------------
 export const companySchema = z.object({
-  name: required("Company name is required"),
+  name: requiredText("Company name is required"),
   address_line_1: optionalText,
   address_line_2: optionalText,
   city: optionalText,
@@ -36,18 +26,16 @@ export const companySchema = z.object({
 
 export type CompanyInput = z.infer<typeof companySchema>;
 
-const nonEmpty = (s: string): string | null => (s.length > 0 ? s : null);
-
 export function toCompanyUpdate(v: CompanyInput) {
   return {
     name: v.name,
-    address_line_1: nonEmpty(v.address_line_1),
-    address_line_2: nonEmpty(v.address_line_2),
-    city: nonEmpty(v.city),
-    state: nonEmpty(v.state.toUpperCase()),
-    zip: nonEmpty(v.zip),
-    phone: nonEmpty(v.phone),
-    website: nonEmpty(v.website),
+    address_line_1: nullIfEmpty(v.address_line_1),
+    address_line_2: nullIfEmpty(v.address_line_2),
+    city: nullIfEmpty(v.city),
+    state: nullIfEmpty(v.state.toUpperCase()),
+    zip: nullIfEmpty(v.zip),
+    phone: nullIfEmpty(v.phone),
+    website: nullIfEmpty(v.website),
     next_due_calculation_method: v.next_due_calculation_method,
   };
 }
@@ -56,10 +44,10 @@ export function toCompanyUpdate(v: CompanyInput) {
 // Tester profile settings
 // ---------------------------------------------------------------------------
 export const profileSchema = z.object({
-  first_name: required("First name is required"),
-  last_name: required("Last name is required"),
+  first_name: requiredText("First name is required"),
+  last_name: requiredText("Last name is required"),
   phone: optionalText,
-  license_number: required("License number is required"),
+  license_number: requiredText("License number is required"),
   license_expiration: requiredDate,
   license_issuing_authority: optionalText,
   test_gauge_serial: optionalText,
@@ -72,11 +60,11 @@ export function toProfileUpdate(v: ProfileInput) {
   return {
     first_name: v.first_name,
     last_name: v.last_name,
-    phone: nonEmpty(v.phone),
+    phone: nullIfEmpty(v.phone),
     license_number: v.license_number,
     license_expiration: v.license_expiration,
-    license_issuing_authority: nonEmpty(v.license_issuing_authority),
-    test_gauge_serial: nonEmpty(v.test_gauge_serial),
-    test_gauge_calibration_date: nonEmpty(v.test_gauge_calibration_date),
+    license_issuing_authority: nullIfEmpty(v.license_issuing_authority),
+    test_gauge_serial: nullIfEmpty(v.test_gauge_serial),
+    test_gauge_calibration_date: nullIfEmpty(v.test_gauge_calibration_date),
   };
 }

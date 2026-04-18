@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/app/field";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
 import {
@@ -19,37 +19,6 @@ import {
   dueDateMethods,
   dueDateMethodLabels,
 } from "@/lib/validation/onboarding";
-
-function Field({
-  id,
-  label,
-  error,
-  required,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>
-        {label}
-        {required ? <span className="ml-0.5 text-destructive">*</span> : null}
-      </Label>
-      {children}
-      {error ? (
-        <p className="text-sm text-destructive">{error}</p>
-      ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
 
 export function CompanyForm({
   companyId,

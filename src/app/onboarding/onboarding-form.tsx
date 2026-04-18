@@ -7,48 +7,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field } from "@/components/app/field";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
 import {
   dueDateMethodLabels,
   dueDateMethods,
   onboardingSchema,
-  STEP_1_FIELDS,
+  step1Fields,
   toOnboardingRpcArgs,
   type OnboardingInput,
 } from "@/lib/validation/onboarding";
-
-function Field({
-  id,
-  label,
-  error,
-  required,
-  hint,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  required?: boolean;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id}>
-        {label}
-        {required ? <span className="ml-0.5 text-destructive">*</span> : null}
-      </Label>
-      {children}
-      {error ? (
-        <p className="text-sm text-destructive">{error}</p>
-      ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
-      ) : null}
-    </div>
-  );
-}
 
 export function OnboardingForm() {
   const router = useRouter();
@@ -85,7 +54,7 @@ export function OnboardingForm() {
   });
 
   async function onNext() {
-    const ok = await trigger(STEP_1_FIELDS as unknown as (keyof OnboardingInput)[]);
+    const ok = await trigger(step1Fields as unknown as (keyof OnboardingInput)[]);
     if (ok) setStep(1);
   }
 

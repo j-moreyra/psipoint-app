@@ -1,25 +1,12 @@
 import { z } from "zod";
-
-// Kept as strings (no transforms) so z.infer matches react-hook-form's
-// default-values shape. Empty → undefined conversion for optional fields
-// happens at RPC-call time via toOnboardingRpcArgs().
-const required = (msg: string) => z.string().trim().min(1, msg);
-const optionalText = z.string().trim();
-
-const optionalStateCode = z.string().trim().refine(
-  (v) => v === "" || /^[A-Za-z]{2}$/.test(v),
-  "Use the 2-letter state code",
-);
-
-const requiredDate = z
-  .string()
-  .trim()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Required");
-
-const optionalDate = z.string().trim().refine(
-  (v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v),
-  "Invalid date",
-);
+import {
+  optionalDate,
+  optionalStateCode,
+  optionalText,
+  requiredDate,
+  requiredText,
+  undefinedIfEmpty,
+} from "@/lib/validation/fields";
 
 export const dueDateMethods = [
   "test_date_plus_year",
@@ -39,7 +26,7 @@ export const dueDateMethodLabels: Record<DueDateMethod, string> = {
 
 export const onboardingSchema = z.object({
   // company
-  company_name: required("Company name is required"),
+  company_name: requiredText("Company name is required"),
   company_address_line_1: optionalText,
   company_address_line_2: optionalText,
   company_city: optionalText,
@@ -49,10 +36,10 @@ export const onboardingSchema = z.object({
   company_website: optionalText,
   next_due_calculation_method: z.enum(dueDateMethods),
   // tester
-  first_name: required("First name is required"),
-  last_name: required("Last name is required"),
+  first_name: requiredText("First name is required"),
+  last_name: requiredText("Last name is required"),
   tester_phone: optionalText,
-  license_number: required("License number is required"),
+  license_number: requiredText("License number is required"),
   license_expiration: requiredDate,
   license_issuing_authority: optionalText,
   test_gauge_serial: optionalText,
@@ -63,7 +50,7 @@ export type OnboardingInput = z.infer<typeof onboardingSchema>;
 
 // Fields that belong to Step 1. Used by the form's "Next" button to
 // validate only the company half before advancing.
-export const STEP_1_FIELDS = [
+export const step1Fields = [
   "company_name",
   "company_address_line_1",
   "company_address_line_2",
@@ -75,11 +62,9 @@ export const STEP_1_FIELDS = [
   "next_due_calculation_method",
 ] as const satisfies readonly (keyof OnboardingInput)[];
 
-const nonEmpty = (s: string): string | undefined =>
-  s.length > 0 ? s : undefined;
-
 // Shape the validated form values into the RPC argument object Supabase
-// expects. Empty strings become undefined so Postgres applies defaults.
+// expects. Empty strings become undefined so Postgres applies the param
+// defaults.
 export function toOnboardingRpcArgs(v: OnboardingInput) {
   return {
     p_company_name: v.company_name,
@@ -87,17 +72,19 @@ export function toOnboardingRpcArgs(v: OnboardingInput) {
     p_last_name: v.last_name,
     p_license_number: v.license_number,
     p_license_expiration: v.license_expiration,
-    p_company_address_line_1: nonEmpty(v.company_address_line_1),
-    p_company_address_line_2: nonEmpty(v.company_address_line_2),
-    p_company_city: nonEmpty(v.company_city),
-    p_company_state: nonEmpty(v.company_state.toUpperCase()),
-    p_company_zip: nonEmpty(v.company_zip),
-    p_company_phone: nonEmpty(v.company_phone),
-    p_company_website: nonEmpty(v.company_website),
+    p_company_address_line_1: undefinedIfEmpty(v.company_address_line_1),
+    p_company_address_line_2: undefinedIfEmpty(v.company_address_line_2),
+    p_company_city: undefinedIfEmpty(v.company_city),
+    p_company_state: undefinedIfEmpty(v.company_state.toUpperCase()),
+    p_company_zip: undefinedIfEmpty(v.company_zip),
+    p_company_phone: undefinedIfEmpty(v.company_phone),
+    p_company_website: undefinedIfEmpty(v.company_website),
     p_next_due_calculation_method: v.next_due_calculation_method,
-    p_tester_phone: nonEmpty(v.tester_phone),
-    p_license_issuing_authority: nonEmpty(v.license_issuing_authority),
-    p_test_gauge_serial: nonEmpty(v.test_gauge_serial),
-    p_test_gauge_calibration_date: nonEmpty(v.test_gauge_calibration_date),
+    p_tester_phone: undefinedIfEmpty(v.tester_phone),
+    p_license_issuing_authority: undefinedIfEmpty(v.license_issuing_authority),
+    p_test_gauge_serial: undefinedIfEmpty(v.test_gauge_serial),
+    p_test_gauge_calibration_date: undefinedIfEmpty(
+      v.test_gauge_calibration_date,
+    ),
   };
 }

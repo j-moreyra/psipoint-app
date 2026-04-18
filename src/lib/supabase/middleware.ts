@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/lib/supabase/types";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -45,8 +46,9 @@ export async function updateSession(request: NextRequest) {
     // Only forward the originally-requested path as `next` when it's a
     // safe relative path. Prevents seeding the login URL with anything
     // we wouldn't want to round-trip through a redirect.
-    if (pathname.startsWith("/") && !pathname.startsWith("//")) {
-      url.searchParams.set("next", pathname);
+    const safeNext = safeNextPath(pathname, "");
+    if (safeNext) {
+      url.searchParams.set("next", safeNext);
     }
     return NextResponse.redirect(url);
   }
