@@ -15,6 +15,11 @@ export const optionalStateCode = z.string().trim().refine(
   "Use the 2-letter state code",
 );
 
+export const requiredStateCode = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2}$/, "Use the 2-letter state code");
+
 export const requiredDate = z
   .string()
   .trim()

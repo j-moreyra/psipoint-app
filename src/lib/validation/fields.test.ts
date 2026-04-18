@@ -5,6 +5,7 @@ import {
   optionalStateCode,
   optionalText,
   requiredDate,
+  requiredStateCode,
   requiredText,
   undefinedIfEmpty,
 } from "./fields";
@@ -70,6 +71,28 @@ describe("optionalStateCode", () => {
 
   it("rejects digits", () => {
     expect(() => optionalStateCode.parse("12")).toThrow();
+  });
+});
+
+describe("requiredStateCode", () => {
+  it("accepts two letters", () => {
+    expect(requiredStateCode.parse("CA")).toBe("CA");
+  });
+
+  it("accepts lowercase (form normalizes case downstream)", () => {
+    expect(requiredStateCode.parse("ca")).toBe("ca");
+  });
+
+  it("rejects empty", () => {
+    expect(() => requiredStateCode.parse("")).toThrow();
+  });
+
+  it("rejects three letters", () => {
+    expect(() => requiredStateCode.parse("CAL")).toThrow();
+  });
+
+  it("rejects digits", () => {
+    expect(() => requiredStateCode.parse("12")).toThrow();
   });
 });
 
