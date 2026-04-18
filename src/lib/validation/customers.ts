@@ -1,9 +1,10 @@
 import { z } from "zod";
 import {
+  cappedOptionalText,
+  FIELD_LIMITS,
   nullIfEmpty,
   optionalEmail,
   optionalStateCode,
-  optionalText,
   undefinedIfEmpty,
 } from "@/lib/validation/fields";
 
@@ -12,17 +13,17 @@ import {
 // via the `customers_name_required` CHECK, and we mirror that here for a
 // friendly UX before the round-trip.
 const customerBase = z.object({
-  contact_first_name: optionalText,
-  contact_last_name: optionalText,
-  company_name: optionalText,
+  contact_first_name: cappedOptionalText(FIELD_LIMITS.name),
+  contact_last_name: cappedOptionalText(FIELD_LIMITS.name),
+  company_name: cappedOptionalText(FIELD_LIMITS.orgName),
   email: optionalEmail,
-  phone: optionalText,
-  billing_address_line_1: optionalText,
-  billing_address_line_2: optionalText,
-  billing_city: optionalText,
+  phone: cappedOptionalText(FIELD_LIMITS.phone),
+  billing_address_line_1: cappedOptionalText(FIELD_LIMITS.addressLine),
+  billing_address_line_2: cappedOptionalText(FIELD_LIMITS.addressLine),
+  billing_city: cappedOptionalText(FIELD_LIMITS.city),
   billing_state: optionalStateCode,
-  billing_zip: optionalText,
-  notes: optionalText,
+  billing_zip: cappedOptionalText(FIELD_LIMITS.zip),
+  notes: cappedOptionalText(FIELD_LIMITS.notes),
 });
 
 function requireAName(
@@ -73,7 +74,7 @@ export function toCustomerInsert(v: CustomerInput, companyId: string) {
 export const newCustomerSchema = customerBase
   .extend({
     create_service_location: z.boolean(),
-    service_location_nickname: optionalText,
+    service_location_nickname: cappedOptionalText(FIELD_LIMITS.orgName),
   })
   .superRefine((v, ctx) => {
     requireAName(v, ctx);

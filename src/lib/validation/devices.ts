@@ -1,8 +1,8 @@
 import { z } from "zod";
 import {
+  FIELD_LIMITS,
   nullIfEmpty,
   optionalDate,
-  optionalText,
   requiredText,
 } from "@/lib/validation/fields";
 
@@ -40,13 +40,23 @@ const optionalServiceType = z.union([
   z.enum(serviceTypes),
 ]);
 
+// Length caps mirror the DB char_length CHECKs (see FIELD_LIMITS).
 export const deviceSchema = z.object({
-  serial_number: requiredText("Serial number is required"),
-  manufacturer: requiredText("Manufacturer is required"),
-  model: requiredText("Model is required"),
-  size: requiredText("Size is required"),
+  serial_number: requiredText(
+    "Serial number is required",
+    FIELD_LIMITS.serial,
+  ),
+  manufacturer: requiredText(
+    "Manufacturer is required",
+    FIELD_LIMITS.manufacturer,
+  ),
+  model: requiredText("Model is required", FIELD_LIMITS.model),
+  size: requiredText("Size is required", FIELD_LIMITS.deviceSize),
   type: z.enum(deviceTypes),
-  location_description: requiredText("On-site location is required"),
+  location_description: requiredText(
+    "On-site location is required",
+    FIELD_LIMITS.locationDescription,
+  ),
   install_date: optionalDate,
   service_type: optionalServiceType,
 });

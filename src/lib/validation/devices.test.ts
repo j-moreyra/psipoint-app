@@ -65,6 +65,22 @@ describe("deviceSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("rejects over-cap serial_number (100 chars)", () => {
+    expect(
+      deviceSchema.safeParse({ ...valid, serial_number: "x".repeat(101) })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects over-cap location_description (500 chars)", () => {
+    expect(
+      deviceSchema.safeParse({
+        ...valid,
+        location_description: "x".repeat(501),
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("toDeviceUpdate", () => {

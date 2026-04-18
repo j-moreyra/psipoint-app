@@ -1,8 +1,9 @@
 import { z } from "zod";
 import {
+  cappedOptionalText,
+  FIELD_LIMITS,
   nullIfEmpty,
   optionalEmail,
-  optionalText,
   requiredStateCode,
   requiredText,
 } from "@/lib/validation/fields";
@@ -45,20 +46,24 @@ const optionalLocationType = z.union([
 const optionalHazardType = z.union([z.literal(""), z.enum(hazardTypes)]);
 
 // Address fields are NOT NULL at the DB level; enforce required here.
+// Length caps mirror the DB char_length CHECKs (see FIELD_LIMITS).
 export const serviceLocationSchema = z.object({
-  nickname: optionalText,
-  address_line_1: requiredText("Street address is required"),
-  address_line_2: optionalText,
-  city: requiredText("City is required"),
+  nickname: cappedOptionalText(FIELD_LIMITS.orgName),
+  address_line_1: requiredText(
+    "Street address is required",
+    FIELD_LIMITS.addressLine,
+  ),
+  address_line_2: cappedOptionalText(FIELD_LIMITS.addressLine),
+  city: requiredText("City is required", FIELD_LIMITS.city),
   state: requiredStateCode,
-  zip: requiredText("ZIP is required"),
+  zip: requiredText("ZIP is required", FIELD_LIMITS.zip),
   location_type: optionalLocationType,
-  on_site_contact_first_name: optionalText,
-  on_site_contact_last_name: optionalText,
-  on_site_contact_phone: optionalText,
+  on_site_contact_first_name: cappedOptionalText(FIELD_LIMITS.name),
+  on_site_contact_last_name: cappedOptionalText(FIELD_LIMITS.name),
+  on_site_contact_phone: cappedOptionalText(FIELD_LIMITS.phone),
   on_site_contact_email: optionalEmail,
-  water_district: optionalText,
-  access_notes: optionalText,
+  water_district: cappedOptionalText(FIELD_LIMITS.orgName),
+  access_notes: cappedOptionalText(FIELD_LIMITS.accessNotes),
   hazard_type: optionalHazardType,
 });
 

@@ -64,6 +64,25 @@ describe("customerSchema", () => {
       customerSchema.safeParse({ ...validCustomer, email: "garbage" }).success,
     ).toBe(false);
   });
+
+  it("rejects over-cap company_name (200 chars)", () => {
+    const res = customerSchema.safeParse({
+      ...validCustomer,
+      company_name: "x".repeat(201),
+    });
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe("Max 200 characters");
+    }
+  });
+
+  it("rejects over-cap notes (5000 chars)", () => {
+    const res = customerSchema.safeParse({
+      ...validCustomer,
+      notes: "x".repeat(5001),
+    });
+    expect(res.success).toBe(false);
+  });
 });
 
 describe("toCustomerUpdate", () => {

@@ -87,6 +87,24 @@ describe("serviceLocationSchema", () => {
       }).success,
     ).toBe(false);
   });
+
+  it("rejects over-cap address_line_1 (200 chars)", () => {
+    expect(
+      serviceLocationSchema.safeParse({
+        ...valid,
+        address_line_1: "x".repeat(201),
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects over-cap access_notes (2000 chars)", () => {
+    expect(
+      serviceLocationSchema.safeParse({
+        ...valid,
+        access_notes: "x".repeat(2001),
+      }).success,
+    ).toBe(false);
+  });
 });
 
 describe("toServiceLocationUpdate", () => {

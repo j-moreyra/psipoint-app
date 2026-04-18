@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  cappedOptionalText,
+  FIELD_LIMITS,
+  maxLenMsg,
   nullIfEmpty,
   optionalDate,
   optionalEmail,
@@ -12,6 +15,32 @@ import {
   toRequiredEnum,
   undefinedIfEmpty,
 } from "./fields";
+
+describe("maxLenMsg", () => {
+  it("formats the overflow message", () => {
+    expect(maxLenMsg(100)).toBe("Max 100 characters");
+  });
+});
+
+describe("FIELD_LIMITS", () => {
+  it("matches the DB char_length caps from the migration", () => {
+    // Sanity check — if these drift, the Zod caps drift too.
+    expect(FIELD_LIMITS.name).toBe(100);
+    expect(FIELD_LIMITS.orgName).toBe(200);
+    expect(FIELD_LIMITS.email).toBe(255);
+    expect(FIELD_LIMITS.phone).toBe(50);
+    expect(FIELD_LIMITS.addressLine).toBe(200);
+    expect(FIELD_LIMITS.city).toBe(100);
+    expect(FIELD_LIMITS.zip).toBe(20);
+    expect(FIELD_LIMITS.notes).toBe(5000);
+    expect(FIELD_LIMITS.accessNotes).toBe(2000);
+    expect(FIELD_LIMITS.serial).toBe(100);
+    expect(FIELD_LIMITS.manufacturer).toBe(100);
+    expect(FIELD_LIMITS.model).toBe(100);
+    expect(FIELD_LIMITS.deviceSize).toBe(50);
+    expect(FIELD_LIMITS.locationDescription).toBe(500);
+  });
+});
 
 describe("requiredText", () => {
   const s = requiredText("Name is required");
@@ -48,6 +77,47 @@ describe("optionalText", () => {
 
   it("trims", () => {
     expect(optionalText.parse("  hi  ")).toBe("hi");
+  });
+});
+
+describe("requiredText with limit", () => {
+  const s = requiredText("required", 10);
+
+  it("accepts at-boundary length", () => {
+    expect(s.parse("1234567890")).toBe("1234567890");
+  });
+
+  it("rejects over-boundary length with the max message", () => {
+    const res = s.safeParse("12345678901");
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe("Max 10 characters");
+    }
+  });
+});
+
+describe("cappedOptionalText", () => {
+  const s = cappedOptionalText(5);
+
+  it("accepts empty", () => {
+    expect(s.parse("")).toBe("");
+  });
+
+  it("accepts at-boundary", () => {
+    expect(s.parse("12345")).toBe("12345");
+  });
+
+  it("rejects over-boundary", () => {
+    const res = s.safeParse("123456");
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe("Max 5 characters");
+    }
+  });
+
+  it("trims before measuring", () => {
+    // After trim this is 5 chars — must pass.
+    expect(s.parse("  12345  ")).toBe("12345");
   });
 });
 
@@ -157,6 +227,15 @@ describe("optionalEmail", () => {
   it("rejects trailing-space-only tokens", () => {
     // "   " after trim is empty → accepted
     expect(optionalEmail.parse("   ")).toBe("");
+  });
+
+  it("rejects over-255-char emails (DB cap)", () => {
+    // 256-char email: 247 a's + "@ex.com" = 254 a's + "@ex.com" — build
+    // carefully to cross 255.
+    const local = "a".repeat(250);
+    const tooLong = `${local}@ex.com`; // 258 chars — over 255
+    expect(tooLong.length).toBeGreaterThan(255);
+    expect(optionalEmail.safeParse(tooLong).success).toBe(false);
   });
 });
 
