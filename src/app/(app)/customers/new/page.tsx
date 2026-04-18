@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BackLink } from "@/components/app/back-link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCompanyId } from "@/lib/db/context";
-import { CustomerForm } from "../customer-form";
+import { NewCustomerForm } from "../new-customer-form";
 
 export const metadata: Metadata = { title: "New customer" };
 
@@ -16,7 +16,7 @@ export default async function NewCustomerPage() {
         <BackLink href="/customers" label="Customers" />
         <h1 className="text-2xl font-semibold tracking-tight">New customer</h1>
       </div>
-      <CustomerForm mode="create" companyId={companyId} />
+      <NewCustomerForm companyId={companyId} />
     </div>
   );
 }

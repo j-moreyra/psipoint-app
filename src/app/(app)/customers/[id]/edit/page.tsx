@@ -41,11 +41,7 @@ export default async function EditCustomerPage({
         />
         <h1 className="text-2xl font-semibold tracking-tight">Edit customer</h1>
       </div>
-      <CustomerForm
-        mode="edit"
-        customerId={customer.id}
-        defaults={defaults}
-      />
+      <CustomerForm customerId={customer.id} defaults={defaults} />
     </div>
   );
 }

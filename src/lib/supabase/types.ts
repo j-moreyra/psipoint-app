@@ -557,6 +557,23 @@ export type Database = {
         }
         Returns: string
       }
+      create_customer_with_location: {
+        Args: {
+          p_billing_address_line_1?: string
+          p_billing_address_line_2?: string
+          p_billing_city?: string
+          p_billing_state?: string
+          p_billing_zip?: string
+          p_company_name?: string
+          p_contact_first_name?: string
+          p_contact_last_name?: string
+          p_email?: string
+          p_location_nickname?: string
+          p_notes?: string
+          p_phone?: string
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       user_company_id: { Args: never; Returns: string }

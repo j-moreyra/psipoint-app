@@ -11,53 +11,88 @@ import { Field } from "@/components/app/field";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
 import {
-  customerSchema,
-  toCustomerUpdate,
-  type CustomerInput,
+  newCustomerSchema,
+  toCreateCustomerWithLocationArgs,
+  toCustomerInsert,
+  type NewCustomerInput,
 } from "@/lib/validation/customers";
 
-// Edit-mode only. The create flow lives in NewCustomerForm so the
-// optional "billing = service" toggle path can use newCustomerSchema
-// without making this form's types more complex than they need to be.
-export function CustomerForm({
-  customerId,
-  defaults,
-}: {
-  customerId: string;
-  defaults: CustomerInput;
-}) {
+const emptyDefaults: NewCustomerInput = {
+  contact_first_name: "",
+  contact_last_name: "",
+  company_name: "",
+  email: "",
+  phone: "",
+  billing_address_line_1: "",
+  billing_address_line_2: "",
+  billing_city: "",
+  billing_state: "",
+  billing_zip: "",
+  notes: "",
+  create_service_location: false,
+  service_location_nickname: "",
+};
+
+export function NewCustomerForm({ companyId }: { companyId: string }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isDirty },
-    reset,
-  } = useForm<CustomerInput>({
-    resolver: zodResolver(customerSchema),
-    defaultValues: defaults,
+    watch,
+    formState: { errors },
+  } = useForm<NewCustomerInput>({
+    resolver: zodResolver(newCustomerSchema),
+    defaultValues: emptyDefaults,
     mode: "onTouched",
   });
 
-  async function onSubmit(values: CustomerInput) {
+  const createLocation = watch("create_service_location");
+
+  async function onSubmit(values: NewCustomerInput) {
     setSubmitting(true);
     const supabase = createClient();
 
-    const { error } = await supabase
-      .from("customers")
-      .update(toCustomerUpdate(values))
-      .eq("id", customerId);
-    setSubmitting(false);
+    let customerId: string | null = null;
 
-    if (error) {
-      toast.error(dbErrorMessage(error, "Couldn't save the customer."));
-      return;
+    if (values.create_service_location) {
+      // Atomic two-row insert via create_customer_with_location RPC.
+      const { data, error } = await supabase.rpc(
+        "create_customer_with_location",
+        toCreateCustomerWithLocationArgs(values),
+      );
+      if (error || !data) {
+        setSubmitting(false);
+        toast.error(dbErrorMessage(error, "Couldn't create the customer."));
+        return;
+      }
+      customerId = data;
+    } else {
+      // Plain customer insert; service location gets added later from the
+      // customer detail page.
+      // NOTE: toCustomerInsert expects a CustomerInput shape, but
+      // NewCustomerInput is a superset of it, so the call is safe.
+      const { data, error } = await supabase
+        .from("customers")
+        .insert(toCustomerInsert(values, companyId))
+        .select("id")
+        .single();
+      if (error || !data) {
+        setSubmitting(false);
+        toast.error(dbErrorMessage(error, "Couldn't create the customer."));
+        return;
+      }
+      customerId = data.id;
     }
 
-    toast.success("Customer saved.");
-    reset(values);
-    router.refresh();
+    setSubmitting(false);
+    toast.success(
+      values.create_service_location
+        ? "Customer and location created."
+        : "Customer created.",
+    );
+    router.push(`/customers/${customerId}`);
   }
 
   return (
@@ -138,6 +173,7 @@ export function CustomerForm({
         <Field
           id="billing_address_line_1"
           label="Street"
+          required={createLocation}
           error={errors.billing_address_line_1?.message}
         >
           <Input
@@ -164,6 +200,7 @@ export function CustomerForm({
             <Field
               id="billing_city"
               label="City"
+              required={createLocation}
               error={errors.billing_city?.message}
             >
               <Input
@@ -177,6 +214,7 @@ export function CustomerForm({
             <Field
               id="billing_state"
               label="State"
+              required={createLocation}
               error={errors.billing_state?.message}
               hint="2-letter"
             >
@@ -193,6 +231,7 @@ export function CustomerForm({
             <Field
               id="billing_zip"
               label="ZIP"
+              required={createLocation}
               error={errors.billing_zip?.message}
             >
               <Input
@@ -214,9 +253,49 @@ export function CustomerForm({
           />
         </Field>
 
+        <div className="rounded-md border bg-muted/30 p-4">
+          <label
+            htmlFor="create_service_location"
+            className="flex cursor-pointer items-start gap-3"
+          >
+            <input
+              id="create_service_location"
+              type="checkbox"
+              className="mt-0.5 size-4 cursor-pointer rounded border-input"
+              {...register("create_service_location")}
+            />
+            <span className="space-y-1">
+              <span className="block text-sm font-medium">
+                Billing address is also the service address
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                We&rsquo;ll create a service location at the billing address so
+                you can add devices right away. Skip this for property
+                managers with multiple buildings.
+              </span>
+            </span>
+          </label>
+
+          {createLocation ? (
+            <div className="mt-3">
+              <Field
+                id="service_location_nickname"
+                label="Location nickname"
+                error={errors.service_location_nickname?.message}
+                hint="Optional. e.g. “Main office”."
+              >
+                <Input
+                  id="service_location_nickname"
+                  {...register("service_location_nickname")}
+                />
+              </Field>
+            </div>
+          ) : null}
+        </div>
+
         <div className="flex justify-end pt-2">
-          <Button type="submit" disabled={!isDirty || submitting}>
-            {submitting ? "Saving…" : "Save changes"}
+          <Button type="submit" disabled={submitting}>
+            {submitting ? "Creating…" : "Create customer"}
           </Button>
         </div>
       </fieldset>

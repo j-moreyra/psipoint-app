@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   customerSchema,
   newCustomerSchema,
+  toCreateCustomerWithLocationArgs,
   toCustomerInsert,
   toCustomerUpdate,
   type CustomerInput,
@@ -144,5 +145,45 @@ describe("newCustomerSchema", () => {
       company_name: "",
     });
     expect(res.success).toBe(false);
+  });
+});
+
+describe("toCreateCustomerWithLocationArgs", () => {
+  const populated: NewCustomerInput = {
+    ...validNewBase,
+    create_service_location: true,
+    company_name: "Acme",
+    email: "a@b.co",
+    phone: "555-1234",
+    billing_address_line_1: "123 Main",
+    billing_city: "Austin",
+    billing_state: "tx",
+    billing_zip: "78701",
+    service_location_nickname: "HQ",
+  };
+
+  it("undefined for empty optional fields", () => {
+    const a = toCreateCustomerWithLocationArgs(validNewBase);
+    // validNewBase inherits company_name="Acme Property Mgmt" from the
+    // customer base fixture — everything else is empty.
+    expect(a.p_contact_first_name).toBeUndefined();
+    expect(a.p_billing_address_line_1).toBeUndefined();
+    expect(a.p_location_nickname).toBeUndefined();
+    expect(a.p_company_name).toBe("Acme Property Mgmt");
+  });
+
+  it("passes populated fields through", () => {
+    const a = toCreateCustomerWithLocationArgs(populated);
+    expect(a.p_company_name).toBe("Acme");
+    expect(a.p_email).toBe("a@b.co");
+    expect(a.p_billing_address_line_1).toBe("123 Main");
+    expect(a.p_billing_city).toBe("Austin");
+    expect(a.p_billing_zip).toBe("78701");
+    expect(a.p_location_nickname).toBe("HQ");
+  });
+
+  it("uppercases billing_state", () => {
+    const a = toCreateCustomerWithLocationArgs(populated);
+    expect(a.p_billing_state).toBe("TX");
   });
 });

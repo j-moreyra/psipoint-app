@@ -4,6 +4,7 @@ import {
   optionalEmail,
   optionalStateCode,
   optionalText,
+  undefinedIfEmpty,
 } from "@/lib/validation/fields";
 
 // Customer is the billing entity. Every field is optional at the type
@@ -89,3 +90,23 @@ export const newCustomerSchema = customerBase
   });
 
 export type NewCustomerInput = z.infer<typeof newCustomerSchema>;
+
+// Arg object for the create_customer_with_location RPC. Empty strings
+// become undefined so Postgres parameter defaults kick in (matching the
+// pattern established by toOnboardingRpcArgs).
+export function toCreateCustomerWithLocationArgs(v: NewCustomerInput) {
+  return {
+    p_contact_first_name: undefinedIfEmpty(v.contact_first_name),
+    p_contact_last_name: undefinedIfEmpty(v.contact_last_name),
+    p_company_name: undefinedIfEmpty(v.company_name),
+    p_email: undefinedIfEmpty(v.email),
+    p_phone: undefinedIfEmpty(v.phone),
+    p_billing_address_line_1: undefinedIfEmpty(v.billing_address_line_1),
+    p_billing_address_line_2: undefinedIfEmpty(v.billing_address_line_2),
+    p_billing_city: undefinedIfEmpty(v.billing_city),
+    p_billing_state: undefinedIfEmpty(v.billing_state.toUpperCase()),
+    p_billing_zip: undefinedIfEmpty(v.billing_zip),
+    p_notes: undefinedIfEmpty(v.notes),
+    p_location_nickname: undefinedIfEmpty(v.service_location_nickname),
+  };
+}
