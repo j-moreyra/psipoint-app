@@ -7,6 +7,7 @@ import {
   getServiceLocation,
   serviceLocationDisplayName,
 } from "@/lib/db/service-locations";
+import { toOptionalEnum } from "@/lib/validation/fields";
 import {
   hazardTypes,
   locationTypes,
@@ -17,17 +18,6 @@ import {
 import { ServiceLocationForm } from "../../service-location-form";
 
 export const metadata: Metadata = { title: "Edit service location" };
-
-// Coerce a nullable DB enum column back into the form's "" | enum shape.
-function toEnumField<T extends string>(
-  value: string | null,
-  allowed: readonly T[],
-): T | "" {
-  if (value && (allowed as readonly string[]).includes(value)) {
-    return value as T;
-  }
-  return "";
-}
 
 export default async function EditServiceLocationPage({
   params,
@@ -53,7 +43,7 @@ export default async function EditServiceLocationPage({
     city: location.city,
     state: location.state,
     zip: location.zip,
-    location_type: toEnumField<LocationType>(
+    location_type: toOptionalEnum<LocationType>(
       location.location_type,
       locationTypes,
     ),
@@ -63,7 +53,7 @@ export default async function EditServiceLocationPage({
     on_site_contact_email: location.on_site_contact_email ?? "",
     water_district: location.water_district ?? "",
     access_notes: location.access_notes ?? "",
-    hazard_type: toEnumField<HazardType>(location.hazard_type, hazardTypes),
+    hazard_type: toOptionalEnum<HazardType>(location.hazard_type, hazardTypes),
   };
 
   return (

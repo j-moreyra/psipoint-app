@@ -67,6 +67,18 @@ export type DeviceStatus =
   | "due_soon"
   | "current";
 
+// Format a Date as a tester-local "YYYY-MM-DD" string — used to line up
+// Date.now() with the DB's date columns, which are pure calendar dates
+// (no time-of-day). Using the Date object's getters rather than
+// toISOString() keeps the answer anchored to the tester's wall clock,
+// not UTC.
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 export function deviceStatus(
   d: Pick<DeviceListRow, "last_tested_date" | "next_test_due_date" | "next_due_override">,
   today: Date = new Date(),
@@ -76,11 +88,21 @@ export function deviceStatus(
   const dueStr = d.next_due_override ?? d.next_test_due_date;
   if (!dueStr) return "current"; // tested but no due date — treat as ok
 
-  const due = new Date(dueStr + "T00:00:00");
-  const diffMs = due.getTime() - today.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const todayStr = toLocalDateStr(today);
 
-  if (diffDays < 0) return "overdue";
+  // Overdue: lexical comparison works because both strings are
+  // ISO-like "YYYY-MM-DD" — no Date parsing, no time-of-day quirks.
+  if (dueStr < todayStr) return "overdue";
+
+  // Day delta via Date.UTC on the date parts. Date.UTC ignores
+  // timezone so we get a pure calendar-day diff regardless of where
+  // the tester's machine thinks it is.
+  const [ty, tm, td] = todayStr.split("-").map(Number);
+  const [dy, dm, dd] = dueStr.split("-").map(Number);
+  const diffDays = Math.round(
+    (Date.UTC(dy, dm - 1, dd) - Date.UTC(ty, tm - 1, td)) / 86_400_000,
+  );
+
   if (diffDays <= 30) return "due_soon";
   return "current";
 }

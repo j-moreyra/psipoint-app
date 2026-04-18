@@ -107,4 +107,58 @@ describe("deviceStatus", () => {
       ),
     ).toBe("current");
   });
+
+  // Boundary checks around the 30-day due-soon window. TODAY is
+  // 2026-04-18; dates expressed relative to that.
+  it("boundary: due exactly today → due_soon", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-04-18",
+          next_test_due_date: "2026-04-18",
+          next_due_override: null,
+        },
+        TODAY,
+      ),
+    ).toBe("due_soon");
+  });
+
+  it("boundary: due in exactly 30 days → due_soon", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-05-18",
+          next_test_due_date: "2026-05-18",
+          next_due_override: null,
+        },
+        TODAY,
+      ),
+    ).toBe("due_soon");
+  });
+
+  it("boundary: due in 31 days → current", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-05-19",
+          next_test_due_date: "2026-05-19",
+          next_due_override: null,
+        },
+        TODAY,
+      ),
+    ).toBe("current");
+  });
+
+  it("boundary: due yesterday → overdue", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-04-17",
+          next_test_due_date: "2026-04-17",
+          next_due_override: null,
+        },
+        TODAY,
+      ),
+    ).toBe("overdue");
+  });
 });

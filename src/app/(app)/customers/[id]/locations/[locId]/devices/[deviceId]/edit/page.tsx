@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCustomer } from "@/lib/db/customers";
 import { getServiceLocation } from "@/lib/db/service-locations";
 import { getDevice } from "@/lib/db/devices";
+import { toOptionalEnum, toRequiredEnum } from "@/lib/validation/fields";
 import {
   deviceTypes,
   serviceTypes,
@@ -15,22 +16,6 @@ import {
 import { DeviceForm } from "../../device-form";
 
 export const metadata: Metadata = { title: "Edit device" };
-
-function toEnumField<T extends string>(
-  value: string | null,
-  allowed: readonly T[],
-): T | "" {
-  if (value && (allowed as readonly string[]).includes(value)) {
-    return value as T;
-  }
-  return "";
-}
-
-function toDeviceType(value: string, fallback: DeviceType = "RP"): DeviceType {
-  return (deviceTypes as readonly string[]).includes(value)
-    ? (value as DeviceType)
-    : fallback;
-}
 
 export default async function EditDevicePage({
   params,
@@ -61,10 +46,10 @@ export default async function EditDevicePage({
     manufacturer: device.manufacturer,
     model: device.model,
     size: device.size,
-    type: toDeviceType(device.type),
+    type: toRequiredEnum<DeviceType>(device.type, deviceTypes, "RP"),
     location_description: device.location_description,
     install_date: device.install_date ?? "",
-    service_type: toEnumField<DeviceServiceType>(
+    service_type: toOptionalEnum<DeviceServiceType>(
       device.service_type,
       serviceTypes,
     ),

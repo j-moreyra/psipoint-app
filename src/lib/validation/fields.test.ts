@@ -8,6 +8,8 @@ import {
   requiredDate,
   requiredStateCode,
   requiredText,
+  toOptionalEnum,
+  toRequiredEnum,
   undefinedIfEmpty,
 } from "./fields";
 
@@ -175,5 +177,49 @@ describe("undefinedIfEmpty", () => {
 
   it("returns the string otherwise", () => {
     expect(undefinedIfEmpty("hi")).toBe("hi");
+  });
+});
+
+describe("toOptionalEnum", () => {
+  const allowed = ["red", "green", "blue"] as const;
+
+  it("passes known values through", () => {
+    expect(toOptionalEnum("green", allowed)).toBe("green");
+  });
+
+  it("returns '' for null", () => {
+    expect(toOptionalEnum(null, allowed)).toBe("");
+  });
+
+  it("returns '' for undefined", () => {
+    expect(toOptionalEnum(undefined, allowed)).toBe("");
+  });
+
+  it("returns '' for unknown values (drift protection)", () => {
+    expect(toOptionalEnum("purple", allowed)).toBe("");
+  });
+
+  it("returns '' for empty input", () => {
+    expect(toOptionalEnum("", allowed)).toBe("");
+  });
+});
+
+describe("toRequiredEnum", () => {
+  const allowed = ["RP", "DC", "PVB"] as const;
+
+  it("passes known values through", () => {
+    expect(toRequiredEnum("DC", allowed, "RP")).toBe("DC");
+  });
+
+  it("falls back for null", () => {
+    expect(toRequiredEnum(null, allowed, "RP")).toBe("RP");
+  });
+
+  it("falls back for unknown", () => {
+    expect(toRequiredEnum("XYZ", allowed, "RP")).toBe("RP");
+  });
+
+  it("falls back for empty", () => {
+    expect(toRequiredEnum("", allowed, "RP")).toBe("RP");
   });
 });

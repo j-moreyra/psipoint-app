@@ -48,3 +48,30 @@ export const nullIfEmpty = (s: string): string | null =>
 // stripped by JSON.stringify and Postgres applies the default.
 export const undefinedIfEmpty = (s: string): string | undefined =>
   s.length > 0 ? s : undefined;
+
+// Coerce a nullable DB enum column back into the "" | enum shape that
+// the form's <select> expects. Unknown values fall back to "" rather
+// than crashing — protects the edit page if a column value drifts past
+// the runtime allowed set.
+export function toOptionalEnum<T extends string>(
+  value: string | null | undefined,
+  allowed: readonly T[],
+): T | "" {
+  if (value && (allowed as readonly string[]).includes(value)) {
+    return value as T;
+  }
+  return "";
+}
+
+// Same idea for a required enum field — coerces to `fallback` on
+// unknown input.
+export function toRequiredEnum<T extends string>(
+  value: string | null | undefined,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  if (value && (allowed as readonly string[]).includes(value)) {
+    return value as T;
+  }
+  return fallback;
+}
