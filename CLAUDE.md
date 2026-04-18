@@ -90,6 +90,26 @@ one that alters. File name: `YYYYMMDDHHMMSS_short_snake_case.sql`. Apply
 via the Supabase MCP or the SQL editor. After applying, regenerate
 `src/lib/supabase/types.ts` from the dashboard and commit.
 
+## Dev data
+
+Seed the dev Supabase with a realistic 5-customer / ~15-location /
+~40-device hierarchy via `npm run seed`. The script is **idempotent**:
+it deletes all customers for the target company before inserting
+(FK cascades handle locations, devices, tests).
+
+```bash
+SEED_COMPANY_ID=<your-company-uuid> npm run seed
+```
+
+Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`. The script
+refuses to run if `NEXT_PUBLIC_SUPABASE_URL` doesn't contain
+`backflo-dev` — keeps seed data strictly off production. The
+service-role key stays **dev-only**; it's never added to Netlify env
+(see `HANDOFF.md` § Key Decisions).
+
+Find your company UUID via the Supabase SQL editor:
+`select id, name from companies;`
+
 ## Testing
 
 Run `npm test` (vitest). Current coverage is unit-only:

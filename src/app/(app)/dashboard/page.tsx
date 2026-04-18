@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { BuildingIcon, PlusIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -18,25 +21,32 @@ export default async function DashboardPage() {
     (tester?.companies as { name: string } | null)?.name ?? "your company";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Welcome back, {tester?.first_name ?? "there"}.
-      </h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Running {companyName} on BackFLO.
-      </p>
+    <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome back, {tester?.first_name ?? "there"}.
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Running {companyName} on BackFLO.
+        </p>
+      </div>
 
-      <div className="mt-8 rounded-lg border border-dashed bg-muted/30 p-10 text-center">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button render={<Link href="/customers" />}>
+          <BuildingIcon className="size-4" />
+          Customers
+        </Button>
+        <Button variant="outline" render={<Link href="/customers/new" />}>
+          <PlusIcon className="size-4" />
+          New customer
+        </Button>
+      </div>
+
+      <div className="rounded-lg border border-dashed bg-muted/30 p-10 text-center">
         <p className="text-sm text-muted-foreground">
-          Customers, service locations, devices, and test recording land in the
-          next phase. For now, head to{" "}
-          <a
-            href="/settings/profile"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Settings
-          </a>{" "}
-          to review your profile and company details.
+          Unified search, test recording, and the PDF certificate flow land
+          in Phases 3–4. For now you can manage customers, service locations,
+          and devices.
         </p>
       </div>
     </div>
