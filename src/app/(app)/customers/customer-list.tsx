@@ -55,7 +55,7 @@ export function CustomerList({ rows }: { rows: CustomerListRow[] }) {
           {filtered.map((r) => (
             <li key={r.id}>
               <Link
-                href={`/customers/${r.id}/edit`}
+                href={`/customers/${r.id}`}
                 className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted"
               >
                 <span className="truncate font-medium">

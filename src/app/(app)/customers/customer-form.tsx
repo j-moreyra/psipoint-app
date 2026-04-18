@@ -81,8 +81,9 @@ export function CustomerForm(props: Props) {
       }
 
       toast.success("Customer created.");
-      router.push("/customers");
-      router.refresh();
+      // Land on the new customer's detail page so the user can add their
+      // first service location next.
+      router.push(`/customers/${data.id}`);
       return;
     }
 

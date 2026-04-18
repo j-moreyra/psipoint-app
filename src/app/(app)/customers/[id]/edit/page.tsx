@@ -35,10 +35,11 @@ export default async function EditCustomerPage({
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
       <div className="space-y-1">
-        <BackLink href="/customers" label="Customers" />
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {customerDisplayName(customer)}
-        </h1>
+        <BackLink
+          href={`/customers/${customer.id}`}
+          label={customerDisplayName(customer)}
+        />
+        <h1 className="text-2xl font-semibold tracking-tight">Edit customer</h1>
       </div>
       <CustomerForm
         mode="edit"
