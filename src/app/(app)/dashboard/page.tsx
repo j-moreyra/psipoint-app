@@ -32,11 +32,15 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button render={<Link href="/customers" />}>
+        <Button nativeButton={false} render={<Link href="/customers" />}>
           <BuildingIcon className="size-4" />
           Customers
         </Button>
-        <Button variant="outline" render={<Link href="/customers/new" />}>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/customers/new" />}
+        >
           <PlusIcon className="size-4" />
           New customer
         </Button>

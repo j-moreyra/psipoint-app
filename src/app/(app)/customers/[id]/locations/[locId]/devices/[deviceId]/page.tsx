@@ -75,6 +75,7 @@ export default async function DeviceDetailPage({
           <Button
             variant="outline"
             size="sm"
+            nativeButton={false}
             render={
               <Link
                 href={`/customers/${customer.id}/locations/${location.id}/devices/${device.id}/edit`}

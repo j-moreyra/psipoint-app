@@ -16,7 +16,7 @@ export default async function CustomersPage() {
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Customers</h1>
-        <Button render={<Link href="/customers/new" />}>
+        <Button nativeButton={false} render={<Link href="/customers/new" />}>
           <PlusIcon className="size-4" />
           New customer
         </Button>

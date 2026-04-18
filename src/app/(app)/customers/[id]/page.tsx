@@ -52,6 +52,7 @@ export default async function CustomerDetailPage({
           <Button
             variant="outline"
             size="sm"
+            nativeButton={false}
             render={<Link href={`/customers/${customer.id}/edit`} />}
           >
             <PencilIcon className="size-4" />
@@ -105,6 +106,7 @@ export default async function CustomerDetailPage({
           </h2>
           <Button
             size="sm"
+            nativeButton={false}
             render={
               <Link href={`/customers/${customer.id}/locations/new`} />
             }

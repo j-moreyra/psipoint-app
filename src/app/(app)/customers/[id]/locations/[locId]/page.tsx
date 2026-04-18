@@ -93,6 +93,7 @@ export default async function ServiceLocationDetailPage({
           <Button
             variant="outline"
             size="sm"
+            nativeButton={false}
             render={
               <Link
                 href={`/customers/${customer.id}/locations/${location.id}/edit`}
@@ -168,6 +169,7 @@ export default async function ServiceLocationDetailPage({
           <h2 className="text-lg font-semibold tracking-tight">Devices</h2>
           <Button
             size="sm"
+            nativeButton={false}
             render={
               <Link
                 href={`/customers/${customer.id}/locations/${location.id}/devices/new`}
