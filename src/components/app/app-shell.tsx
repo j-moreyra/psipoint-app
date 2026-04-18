@@ -32,13 +32,23 @@ export function AppShell({
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b bg-background px-4">
-        <Link
-          href="/dashboard"
-          className="font-mono text-lg font-bold tracking-tight"
-        >
-          BackFLO
-        </Link>
+      <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b bg-background px-4">
+        <div className="flex items-center gap-5">
+          <Link
+            href="/dashboard"
+            className="font-mono text-lg font-bold tracking-tight"
+          >
+            BackFLO
+          </Link>
+          <nav className="flex items-center gap-4 text-sm">
+            <Link
+              href="/customers"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Customers
+            </Link>
+          </nav>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger
             className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
