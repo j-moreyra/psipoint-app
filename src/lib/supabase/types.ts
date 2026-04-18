@@ -574,6 +574,26 @@ export type Database = {
         }
         Returns: string
       }
+      search_devices_by_serial: {
+        Args: { p_limit?: number; p_query: string; p_threshold?: number }
+        Returns: {
+          customer_company_name: string
+          customer_contact_first_name: string
+          customer_contact_last_name: string
+          customer_id: string
+          device_id: string
+          is_active: boolean
+          manufacturer: string
+          model: string
+          serial_number: string
+          service_location_address_line_1: string
+          service_location_city: string
+          service_location_id: string
+          service_location_nickname: string
+          similarity_score: number
+          type: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       user_company_id: { Args: never; Returns: string }
