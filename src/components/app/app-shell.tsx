@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SearchBar } from "@/components/app/search-bar";
 import { SignOutItem } from "@/components/app/sign-out-item";
 
 interface AppShellUser {
@@ -32,15 +33,15 @@ export function AppShell({
 
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b bg-background px-4">
-        <div className="flex items-center gap-5">
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-background px-4 sm:gap-4">
+        <div className="flex shrink-0 items-center gap-5">
           <Link
             href="/dashboard"
             className="font-mono text-lg font-bold tracking-tight"
           >
             BackFLO
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="hidden items-center gap-4 text-sm sm:flex">
             <Link
               href="/customers"
               className="text-muted-foreground transition-colors hover:text-foreground"
@@ -48,6 +49,9 @@ export function AppShell({
               Customers
             </Link>
           </nav>
+        </div>
+        <div className="flex flex-1 justify-center sm:justify-start">
+          <SearchBar />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger
