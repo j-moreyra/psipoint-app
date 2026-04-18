@@ -10,7 +10,8 @@ import {
   getServiceLocation,
   serviceLocationDisplayName,
 } from "@/lib/db/service-locations";
-import { deviceStatus, getDevice, type DeviceStatus } from "@/lib/db/devices";
+import { getDevice } from "@/lib/db/devices";
+import { deviceStatus, type DeviceStatus } from "@/lib/dates/due-status";
 import {
   deviceTypeLabels,
   serviceTypeLabels,

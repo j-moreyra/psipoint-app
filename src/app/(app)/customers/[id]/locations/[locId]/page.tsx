@@ -11,11 +11,10 @@ import {
   serviceLocationDisplayName,
 } from "@/lib/db/service-locations";
 import {
-  deviceStatus,
   listDevicesForLocation,
   type DeviceListRow,
-  type DeviceStatus,
 } from "@/lib/db/devices";
+import { deviceStatus, type DeviceStatus } from "@/lib/dates/due-status";
 import {
   hazardTypeLabels,
   locationTypeLabels,
