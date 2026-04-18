@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Netlify's Next.js runtime (v5) is auto-detected on Next 15+ — no plugin
+# declaration needed. App Router, middleware, and route handlers all run
+# natively on Netlify Functions / Edge.
