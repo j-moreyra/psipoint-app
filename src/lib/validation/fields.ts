@@ -19,11 +19,13 @@ export const FIELD_LIMITS = {
   zip: 20,
   notes: 5000,              // customers.notes
   accessNotes: 2000,        // service_locations.access_notes
-  serial: 100,              // devices.serial_number
+  serial: 100,              // devices.serial_number, test_results.test_gauge_serial
   manufacturer: 100,        // devices.manufacturer
   model: 100,               // devices.model
   deviceSize: 50,           // devices.size
   locationDescription: 500, // devices.location_description
+  shutoffCondition: 200,    // test_results.shutoff_valve_{1,2}_condition
+  repairs: 5000,            // test_results.repairs_made
 } as const;
 
 export const maxLenMsg = (n: number) => `Max ${n} characters`;
@@ -73,6 +75,14 @@ export const requiredDate = z
 export const optionalDate = z.string().trim().refine(
   (v) => v === "" || /^\d{4}-\d{2}-\d{2}$/.test(v),
   "Invalid date",
+);
+
+// Optional PSI reading. DB columns are numeric(4,1) → max 999.9 with one
+// decimal place. Empty string allowed for "no reading captured" (e.g. a
+// catastrophic failure that prevented taking a reading).
+export const optionalPsi = z.string().trim().refine(
+  (v) => v === "" || /^\d{1,3}(\.\d)?$/.test(v),
+  "PSI must be 0–999.9",
 );
 
 // Postgres expects NULL for "unset"; use this for .update({...}) payloads.

@@ -6,6 +6,7 @@ import {
   nullIfEmpty,
   optionalDate,
   optionalEmail,
+  optionalPsi,
   optionalStateCode,
   optionalText,
   requiredDate,
@@ -39,6 +40,54 @@ describe("FIELD_LIMITS", () => {
     expect(FIELD_LIMITS.model).toBe(100);
     expect(FIELD_LIMITS.deviceSize).toBe(50);
     expect(FIELD_LIMITS.locationDescription).toBe(500);
+    expect(FIELD_LIMITS.shutoffCondition).toBe(200);
+    expect(FIELD_LIMITS.repairs).toBe(5000);
+  });
+});
+
+describe("optionalPsi", () => {
+  it("accepts empty", () => {
+    expect(optionalPsi.parse("")).toBe("");
+  });
+
+  it("accepts integer PSI", () => {
+    expect(optionalPsi.parse("12")).toBe("12");
+  });
+
+  it("accepts single-decimal PSI", () => {
+    expect(optionalPsi.parse("12.3")).toBe("12.3");
+  });
+
+  it("accepts zero", () => {
+    expect(optionalPsi.parse("0")).toBe("0");
+  });
+
+  it("accepts 999.9 (upper boundary)", () => {
+    expect(optionalPsi.parse("999.9")).toBe("999.9");
+  });
+
+  it("rejects four-digit integer (numeric(4,1) overflow)", () => {
+    expect(() => optionalPsi.parse("1000")).toThrow();
+  });
+
+  it("rejects two decimals", () => {
+    expect(() => optionalPsi.parse("12.34")).toThrow();
+  });
+
+  it("rejects trailing decimal point", () => {
+    expect(() => optionalPsi.parse("12.")).toThrow();
+  });
+
+  it("rejects negative", () => {
+    expect(() => optionalPsi.parse("-1")).toThrow();
+  });
+
+  it("rejects letters", () => {
+    expect(() => optionalPsi.parse("nope")).toThrow();
+  });
+
+  it("trims whitespace before matching", () => {
+    expect(optionalPsi.parse("  12.3  ")).toBe("12.3");
   });
 });
 
