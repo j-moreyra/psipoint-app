@@ -1,6 +1,6 @@
 # HANDOFF.md — BackFLO
 
-> Last updated: 2026-04-18. First handoff.
+> Last updated: 2026-04-18. Phase 2 complete.
 
 ## 1. Project Overview
 
@@ -37,41 +37,55 @@
 
 ## 2. Current Status
 
-**Phase 1 is complete and live in production.** Phase 2 has not started.
+**Phase 2 (Customer/Location/Device CRUD) — complete and merged to main. Phase 3 (Search + Test Entry + Dashboard) — not started.**
 
-- **Production URL:** https://backflo-app.netlify.app
-- **GitHub:** https://github.com/j-moreyra/backflo-app (private)
-- **Active branch:** `main` (only branch; all work landed here directly)
-- **Latest commit:** `8c86101 feat(onboarding): trim tester step — drop gauge + issuing authority fields`
+- **GitHub:** https://github.com/j-moreyra/backflo-app (public)
+- **Active branch:** `main`
+- **Latest commit:** `4a54de4 fix(ui): resolve Base UI nativeButton warnings across 8 call sites`
+- Deployed to Netlify deploy preview. Production Netlify site not yet connected.
 
-**Phase 1 delivery stats:**
-- 14 commits from `304a91b` (initial create-next-app) → `8c86101` (current HEAD)
-- ~3,700 LOC of app code
-- 16 routes live (see below)
-- 3 migrations applied to Supabase
-- 78 Vitest tests passing in ~300ms
-- Netlify first deploy: state `ready`, auto-deploys on every push to `main`
+**Phase 2 delivery (13 commits, squash-merged via PR #1):**
+- **Validation schemas** — customer, service-location, device Zod schemas built on shared primitives (`fields.ts`: requiredText, cappedOptionalText, optionalEmail, requiredStateCode, toOptionalEnum, toRequiredEnum). FIELD_LIMITS mirrors the DB char_length caps.
+- **DB helper layer** — `src/lib/db/` — client.ts (context helpers, `isUuid` guard, `getCurrentCompanyId`), customers.ts, service-locations.ts, devices.ts. Column sets declared `as const` so Supabase's generics infer exact row shapes.
+- **Customer pages** — list / new / detail / edit. Billing=service toggle on new-customer form creates customer + first location atomically via RPC.
+- **Service-location pages** — new / detail / edit. Shared form via discriminated-union props. Defense-in-depth guard: verifies location.customer_id matches URL [id].
+- **Device pages** — new / detail / edit. Same discriminated-union form pattern. Status card with colored dot (overdue / due-soon / current / never-tested). Phase 3 test-entry placeholder.
+- **Geocoding** — Nominatim provider behind a single `geocodeAddress()` entry point. Server-side, fire-and-forget after save.
+- **Seed script** — `scripts/seed.ts` + `.env.seed` pattern. Gated by three safeguards (ALLOW_SEEDING, project-ref match, UUID validation).
+- **Review fixes** — SF-1 (literal SELECT inference), SF-2 (UUID guards), SF-3 (email validation), SF-5 (DB length caps mirrored in Zod).
+- **UI polish** — deviceStatus boundary fix (lexical YYYY-MM-DD compare + UTC delta), Base UI nativeButton warnings resolved, app-shell Customers nav, dashboard CTAs, loading skeletons.
+
+**Phase 2 stats:**
+- 23 routes live (was 13; +10 customer/location/device routes)
+- 4 migrations applied to Supabase (+ `20260418000000_create_customer_with_location_rpc.sql`)
+- 197 Vitest tests passing (was 78)
+- `tsc --noEmit` + `npm run build` green
 
 **Routes currently shipped:**
 ```
-/                       (redirect to /login or /dashboard based on session)
-/login                  (auth page)
-/signup                 (auth page)
-/reset-password         (request email)
-/reset-password/update  (new password after email click)
-/check-email            (post-signup / post-reset screen)
-/onboarding             (2-step company + tester setup)
-/dashboard              (stub — greets tester by name)
-/settings               (→ redirects to /settings/profile)
-/settings/profile       (edit tester row)
-/settings/company       (edit company row)
-/auth/callback          (GET route handler — exchanges ?code for session)
-/auth/signout           (POST route handler — clears session)
+/                       (redirect to /login or /dashboard)
+/login, /signup
+/reset-password, /reset-password/update, /check-email
+/auth/callback, /auth/signout
+/onboarding
+/dashboard
+/settings, /settings/profile, /settings/company
+/customers, /customers/new
+/customers/[id], /customers/[id]/edit
+/customers/[id]/locations/new
+/customers/[id]/locations/[locId], /customers/[id]/locations/[locId]/edit
+/customers/[id]/locations/[locId]/devices/new
+/customers/[id]/locations/[locId]/devices/[deviceId]
+/customers/[id]/locations/[locId]/devices/[deviceId]/edit
 ```
 
-**Outstanding:**
-- ⏳ End-to-end smoke test in production (real email signup → confirm link → onboarding → dashboard). User needs to do this — I can't run it from the assistant side.
-- No Phase 2 work started.
+**What's NOT done yet (Phase 3+ scope):**
+- No unified search (customers + locations + devices)
+- No test entry flow
+- No PDF generation (Phase 4)
+- No transactional email delivery / Resend integration (Phase 4)
+- No customer portal
+- No deployment to production Supabase / production Netlify site
 
 ## 3. Architecture
 
@@ -88,6 +102,15 @@ Customer (billing entity, e.g. "Acme Property Management")
 ```
 
 All company-scoped tables carry `company_id` and are behind RLS.
+
+### Phase 2 additions
+
+- **Validation (`src/lib/validation/`)** — customer, service-location, device Zod schemas plus shared `fields.ts` primitives: `requiredText`, `cappedOptionalText`, `optionalEmail`, `requiredStateCode`, `toOptionalEnum`, `toRequiredEnum`. `FIELD_LIMITS` is a single-source-of-truth const that mirrors the DB `char_length` CHECK constraints — paste-overflow surfaces as an inline "Max N characters" field error instead of a generic DB 23514 toast.
+- **DB helper layer (`src/lib/db/`)** — `client.ts` (context helpers + `isUuid` guard + `getCurrentCompanyId()`), `customers.ts`, `service-locations.ts`, `devices.ts`. Each helper declares its own column set with `as const` so Supabase's generics infer the row shape and tsc verifies the hand-written `*ListRow` / `*DetailRow` types match. RLS does company-scoping; helpers don't re-filter.
+- **Geocoder (`src/lib/geocode/`)** — Nominatim provider behind a single public `geocodeAddress()` entry point. Server-side, best-effort, async fire-and-forget after the DB write so the save UX isn't blocked by geocoder latency. Swap-path to Google is isolated to this one function.
+- **Routes (`src/app/(app)/customers/*`)** — full 4-level hierarchy: list/new/detail/edit at the customer level, locations/new and locations/[locId]/{detail,edit}, devices/new and devices/[deviceId]/{detail,edit}. Shared forms use discriminated-union props for create+edit. Detail pages defense-in-depth verify parent chain before rendering.
+- **Seed infrastructure** — `scripts/seed.ts` + `.env.seed` pattern. Gated by three safeguards: `ALLOW_SEEDING=true` must be explicit, `NEXT_PUBLIC_SUPABASE_URL` must contain `SEED_ALLOWED_PROJECT_REF`, and `SEED_COMPANY_ID` must be a valid UUID. Idempotent: wipes all customers for the target company before inserting (FK cascades).
+- **New migration — `20260418000000_create_customer_with_location_rpc.sql`** — adds `create_customer_with_location()`. **SECURITY INVOKER** (not DEFINER): the caller already has INSERT rights via RLS; the RPC just provides atomicity for the "billing = service" toggle path so a customer can't be orphaned if the location insert fails.
 
 ### Database (Supabase)
 
@@ -144,11 +167,18 @@ The client sends 13 of the 17 params; the other 4 (`next_due_calculation_method`
 ### Environment variables
 
 **Local dev (`.env.local` — gitignored):**
-- `NEXT_PUBLIC_SUPABASE_URL` → set to the Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` → set to the publishable key (prefixed `sb_publishable_`; public by design)
-- `SUPABASE_SERVICE_ROLE_KEY` → **intentionally blank** (see "Key Decisions")
+- `NEXT_PUBLIC_SUPABASE_URL` → Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` → publishable key (`sb_publishable_` prefix; public by design)
 - `RESEND_API_KEY` → blank (Phase 4)
 - `RESEND_FROM_EMAIL` → blank (Phase 4)
+
+**Seed script (`.env.seed` — gitignored, dev-only, NEW in Phase 2):**
+- `SUPABASE_SERVICE_ROLE_KEY` → dev project service-role key
+- `SEED_ALLOWED_PROJECT_REF` → `oscalardqnipswcdwhke` (the dev project ref)
+
+Only `scripts/seed.ts` reads `.env.seed`. The app itself **still never reads the service-role key** — the original Phase 1 security principle is preserved.
+
+**Do not add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local`.** An empty-string line (`KEY=`) counts as "set" in the dotenv loader and will block `.env.seed` from providing the real value. Learned the hard way during Phase 2 setup — symptom was a confusing "SUPABASE_SERVICE_ROLE_KEY is not set in .env.seed" error while the file looked correct.
 
 A template lives at `.env.local.example` (gitignore whitelists this specific file).
 
@@ -170,8 +200,9 @@ A template lives at `.env.local.example` (gitignore whitelists this specific fil
 | `20260417000000_initial_schema.sql` | 6 tables + RLS policies + `user_company_id()` + triggers + indexes + search vectors |
 | `20260417120000_signup_rpc.sql` | `create_company_and_first_tester` SECURITY DEFINER function |
 | `20260417130000_length_constraints.sql` | `char_length` CHECK constraints on every user-text column (caps: names 200, emails 255, phones 50, notes 5000) |
+| `20260418000000_create_customer_with_location_rpc.sql` | `create_customer_with_location()` SECURITY **INVOKER** — atomic customer + first service-location insert for the "billing = service" toggle. Stamps `company_id` from `user_company_id()`, not a parameter |
 
-All three applied via the Supabase MCP's `apply_migration` tool.
+All four applied via the Supabase MCP's `apply_migration` tool.
 
 ## 4. Key Decisions
 
@@ -194,6 +225,17 @@ All three applied via the Supabase MCP's `apply_migration` tool.
 - **Asking for `next_due_calculation_method` at onboarding** — removed. Testers don't know their utility's rule at signup; most want the default. DB parameter default (`'test_date_plus_year'`) kicks in when the client omits the arg.
 - **Asking for gauge fields + license issuing authority at onboarding** — removed. Testers would need to walk to their truck to look up gauge info. All three moved to `/settings/profile` only.
 
+### Phase 2 decisions
+
+- **Nominatim for geocoding** — free, fair-use; swap path to Google deliberately isolated behind a single `geocodeAddress()` function.
+- **Server-side geocoding on save** — lat/lng lands atomically with the row. Async (fire-and-forget) so save UX doesn't wait on geocoder latency. Failures swallowed and logged via `console.warn` for hit-rate monitoring.
+- **Client-side filter for customer list in Phase 2** — real DB search (unified across customers/locations/devices) deferred to Phase 3 per the build plan.
+- **"Type-aware" device form = just the type select + helper text** — real type-aware conditional fields live on the Phase 3 test-entry form, not on the device form.
+- **Soft-delete via `is_active=false`** across customers, service_locations, devices. Hard-delete is out of scope. A "Deactivated" tag shows on detail headers when `is_active=false`.
+- **"Billing = service" toggle on new-customer form only**, not on edit. Once customer + locations exist as separate rows they're edited independently (no cross-linked state to keep in sync).
+- **Seed script security model** — `.env.seed` separate from `.env.local`; app never reads the service-role key; seed gated by `ALLOW_SEEDING` opt-in + project-ref match + UUID check.
+- **`create_customer_with_location()` is SECURITY INVOKER, not DEFINER** — different from the Phase 1 signup RPC. The caller already has INSERT rights via RLS; we only need transaction atomicity. No privilege escalation needed, so SECURITY DEFINER would be unnecessary attack surface.
+
 ### Patterns adopted
 - **Validation:** shared Zod primitives in `src/lib/validation/fields.ts` (`requiredText`, `optionalText`, `optionalStateCode`, `requiredDate`, `optionalDate`, `nullIfEmpty`, `undefinedIfEmpty`). All schemas compose from these. Zod schemas operate on raw strings; normalization happens at submit via `to*Args`/`to*Update` helpers.
 - **Forms:** shadcn Input/Label + shared `src/components/app/field.tsx` (label + error/hint), wrapped in `<fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">` to lock inputs during submit.
@@ -203,33 +245,49 @@ All three applied via the Supabase MCP's `apply_migration` tool.
 
 ## 5. Prior Work History
 
-*(First handoff — no prior sessions to migrate. The sections above cover the initial Phase 1 build from scratch.)*
+### Phase 1 — Auth + Onboarding + Settings (shipped 2026-04-17)
+14 commits from repo init through onboarding polish. Delivered Supabase schema, RLS, the `create_company_and_first_tester` SECURITY DEFINER RPC, full auth flow (login/signup/reset/callback/signout), 2-step onboarding, app shell, dashboard stub, settings (profile + company), 3 migrations, 78 Vitest tests, and Netlify site provisioning. See commits through `8c86101`.
+
+### Phase 2 — Customer/Location/Device CRUD (shipped 2026-04-18)
+13 commits shipped the full customer → service-location → device hierarchy:
+
+- Validation schemas (customers, service-locations, devices) composed from shared `fields.ts` primitives; FIELD_LIMITS mirrors DB caps.
+- Typed DB helper layer (`src/lib/db/`) with `as const` column sets and `isUuid` guards before round-trips.
+- Customer pages — list/new/detail/edit; "billing = service" toggle on new-customer creates customer + first location in one transaction.
+- Service-location pages — new/detail/edit + new `create_customer_with_location` RPC (SECURITY INVOKER, atomicity only).
+- Device pages — new/detail/edit; colored-dot status card (overdue / due-soon / current / never-tested); Phase-3 test-history placeholder.
+- Nominatim geocoder behind a single `geocodeAddress()` entry point; fire-and-forget stamps lat/lng post-save.
+- Seed script (`scripts/seed.ts`) + `.env.seed` pattern; triple-gated safeguards.
+- Review fixes — SF-1 literal SELECT inference (`as const`), SF-2 UUID guards on detail/child-list fetches, SF-3 `optionalEmail` primitive, SF-5 DB char_length caps mirrored in Zod.
+- UI polish — deviceStatus boundary fix (lexical YYYY-MM-DD + UTC delta), Base UI `nativeButton` warnings resolved across 8 sites, app-shell Customers link, dashboard CTAs, loading skeletons.
+
+197 tests passing (78 → 197). tsc + build green. Deploy preview on Netlify green.
 
 ## 6. Active Issues
 
-**No blocking issues.** Build is clean, tests pass, prod deploy is healthy.
+**No blocking issues.** Build is clean, tests pass (197), deploy preview green.
 
 **Open items / risks (non-blocking):**
-- **End-to-end smoke test not yet run in prod.** Signup → email confirm → onboarding → dashboard has only been exercised in the development environment; no user has hit it on production. Real email delivery + the SECURITY DEFINER RPC + Supabase redirect URL allowlist are all expected to work, but **one single real signup is the final proof.**
-- **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, and the open-redirect guard (78 tests). Not covered: RLS enforcement, the signup RPC's runtime guards, trigger math for all 4 due-date methods, and the end-to-end browser flow.
+- **Pick a domain** — backflo.app / backflo.com / getbackflo.com / backflo.io still unchecked.
+- **USPTO trademark search for "BackFLO"** — pending.
+- **Production Netlify site not yet connected** — deploy preview only.
+- **Resend API key not yet configured** — Phase 4 need.
+- **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, and FIELD_LIMITS drift (197 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch.
 - **No Supabase PITR.** Free tier doesn't offer point-in-time recovery. Once paying customers exist, upgrade is strongly recommended before schema changes that affect data.
-- **No error-reporting / observability.** Netlify logs exist but nothing catches client-side crashes beyond Next's default. No Sentry yet.
-- **`@netlify/plugin-nextjs` not explicitly pinned** in `netlify.toml` — relying on auto-detection. If Netlify's default behavior changes, this could silently regress; pin if that becomes a concern.
+- **No error-reporting / observability.** No Sentry yet.
+- **`@netlify/plugin-nextjs` not explicitly pinned** in `netlify.toml` — relying on auto-detection.
 
 ## 7. Next Steps
 
 Ordered by dependency / priority.
 
-**Immediately (user action):**
-- [ ] Run the production signup smoke test: open https://backflo-app.netlify.app/signup, sign up with a real email, click the confirmation link, complete onboarding, confirm you land on `/dashboard` greeting you by name.
-
-**Phase 2 — Customers + Service Locations + Devices CRUD** (blueprint §7 Phase 2, days 4–9):
-- [ ] Customer list + detail + add/edit form
-- [ ] Service Location list (on Customer detail) + detail + add/edit form
-- [ ] Device list (on Service Location detail) + detail + add/edit form (type-aware: RP / DC / PVB / SVB / AVB)
-- [ ] Address geocoding on service location save (Nominatim free, or Google Maps paid)
-- [ ] Seed script with realistic hierarchical data (5 customers × 15 locations × 40 devices)
-- [ ] Blueprint UX toggle: "Is billing address the same as service address?" → creates Customer + Service Location in one step for simple single-property customers
+**Phase 2 — Customers + Service Locations + Devices CRUD** (blueprint §7 Phase 2, days 4–9) — ✅ complete:
+- [x] Customer list + detail + add/edit form
+- [x] Service Location list (on Customer detail) + detail + add/edit form
+- [x] Device list (on Service Location detail) + detail + add/edit form (type-aware: RP / DC / PVB / SVB / AVB)
+- [x] Address geocoding on service location save (Nominatim)
+- [x] Seed script with realistic hierarchical data (5 customers × 15 locations × 23 devices)
+- [x] Blueprint UX toggle: "Is billing address the same as service address?" → creates Customer + Service Location in one step via `create_customer_with_location` RPC
 
 **Phase 3 — Unified search + Test entry** (blueprint §7 Phase 3, days 10–15):
 - [ ] Unified search bar in app header (customers + service locations + devices)
@@ -279,6 +337,24 @@ Ordered by dependency / priority.
 - **`fieldset` defaults include a border.** Added `border-0 p-0 m-0 min-w-0` Tailwind utilities to neutralize.
 - **The Netlify CLI (`netlify-cli`) is globally installed but not logged in.** Tried during deploy; skipped because the MCP + dashboard OAuth got us further without a login prompt.
 - **`search_params.next` validation is duplicated defensively.** Middleware, login page, and `/auth/callback` all run `safeNextPath()` independently. This is intentional — defense in depth.
+
+### Lessons learned from Phase 2 shipping
+
+- **Worktree + session safety** — running `git worktree remove` while a Claude Code session is active inside that worktree kills the session and the transcript is unrecoverable. Close the session first, then remove the worktree.
+- **Start sessions with the worktree checkbox OFF** — for solo workflow in a single repo, worktree mode adds indirection and risk. Leave unchecked for Phase 3 sessions.
+- **Stale remote branches survive local deletion** — `git branch -d` only cleans up local. Remote cleanup requires `git push origin --delete <branch>`. Always check `git branch -r` before closing out a phase.
+- **Branch push ≠ PR merge** — verify the "Merged" badge on the PR before deleting backup branches. A pushed-but-unmerged PR branch can create confusion weeks later.
+- **Avoid GitHub's web editor for code files** — bypasses local `tsc --noEmit`, bypasses CLAUDE.md rules, bypasses commit message conventions. Web editor is fine for README typos; not fine for `.ts` files.
+- **Empty env vars are not unset env vars** — `KEY=` (no value) counts as "set" in most dotenv loaders. If `.env.seed` needs to provide a value and `.env.local` has an empty line for that key, `.env.local` wins and seeds fail confusingly. Delete empty lines entirely.
+- **Complete files only when handing off code** — placeholder comments ("paste data here") in code handoffs cause ~3-hour recovery sessions. Always reproduce the full file.
+
+### Repos / accounts
+
+- **GitHub repo:** https://github.com/j-moreyra/backflo-app (public) ✓
+- **Supabase:** `backflo-dev` project active ✓
+- **Netlify:** deploy preview active at `deploy-preview-2--backflo-app.netlify.app`; production site not yet connected
+- **Resend:** not yet set up (Phase 4)
+- **Stripe:** not yet set up (post-MVP)
 
 ### Conventions (see `CLAUDE.md` for the full list)
 - Test files live next to source: `src/lib/validation/auth.test.ts` next to `auth.ts`
