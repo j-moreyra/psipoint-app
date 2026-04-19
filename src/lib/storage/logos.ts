@@ -51,3 +51,22 @@ export async function deleteCompanyLogo(
     .remove([storagePath]);
   if (error) throw error;
 }
+
+// Signed URL for preview rendering in the UI. Private bucket + RLS
+// means direct `<img src="...">` against the raw path won't work.
+// 5-minute TTL — long enough that re-renders on the settings page
+// don't re-fetch constantly; short enough that a leaked link is
+// low-value.
+export const LOGO_PREVIEW_URL_SECONDS = 300;
+
+export async function createLogoPreviewUrl(
+  db: DbClient,
+  storagePath: string,
+  expiresInSec: number = LOGO_PREVIEW_URL_SECONDS,
+): Promise<string | null> {
+  const { data, error } = await db.storage
+    .from(BUCKET_COMPANY_LOGOS)
+    .createSignedUrl(storagePath, expiresInSec);
+  if (error) return null;
+  return data.signedUrl;
+}
