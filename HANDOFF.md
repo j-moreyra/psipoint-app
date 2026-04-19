@@ -395,6 +395,7 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 - **`@netlify/plugin-nextjs` not explicitly pinned** in `netlify.toml` — relying on auto-detection.
 - **Test-form `test_date` default uses server-local wall clock**, not the tester's. If the Netlify function runs in a different timezone from the tester, today's date can be off by one. Phase 5 should move this to a client component that reads the browser's `new Date()`. Tracked in `src/app/.../tests/new/page.tsx` next to `todayYmdServerLocal`.
 - **Leftover dev DB test row.** The unit-14 end-to-end submit verification inserted a real row on `MT-DOM-001` with notes "Unit 14 submit verification. Safe to delete." It cascades away on next seed; harmless to leave but tracked here so it doesn't surprise anyone reading dev data.
+- **SVB certificate render not visually verified.** Unit test covers the data-shaping branch, PVB shares the same render branch and is verified, but no SVB device exists in seed to render one end-to-end. Low priority; SVBs are uncommon in the target segment.
 
 ## 7. Next Steps
 
