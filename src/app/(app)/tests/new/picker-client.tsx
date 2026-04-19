@@ -361,16 +361,24 @@ function EmptyCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Unit 10 replaces this with a real chain that routes through
-// customer + location selection and prefills the serial on the
-// new-device form. Left here so the serial-tab zero-result state
-// isn't a dead end in the unit 9 → unit 10 interval.
-function AddNewDeviceStub({ serial: _serial }: { serial: string }) {
+// Q13 zero-result chain. Routes to the customer list with
+// returnTo + serial params. From there the tester drills through
+// customer → location → new-device form (unit 10 threads the same
+// params through each Phase-2 intermediate page). New-device save
+// redirects back to /tests/new?device=<newId>, which the page
+// resolves to the canonical test-form URL.
+function AddNewDeviceStub({ serial }: { serial: string }) {
+  const href = `/customers?returnTo=${encodeURIComponent(
+    "/tests/new",
+  )}&serial=${encodeURIComponent(serial)}`;
   return (
-    <p className="text-xs text-muted-foreground">
-      Adding a new device from this screen lands in unit 10 — meanwhile
-      you can create it from the customer's service location.
-    </p>
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+    >
+      <PlusIcon className="size-4" />
+      Add new device
+    </Link>
   );
 }
 

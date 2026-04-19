@@ -31,6 +31,11 @@ type CreateProps = {
   serviceLocationId: string;
   backHref: string;
   defaults?: DeviceInput;
+  // Q13: when set (validated via safeNextPath server-side), the form
+  // redirects to `${returnTo}?device=<newId>` on successful create
+  // instead of the usual backHref. /tests/new resolves the device id
+  // into the canonical test-form URL.
+  returnTo?: string;
 };
 
 type EditProps = {
@@ -87,7 +92,15 @@ export function DeviceForm(props: Props) {
       }
 
       toast.success("Device created.");
-      router.push(props.backHref);
+      if (props.returnTo) {
+        // Q13 return leg — /tests/new resolves ?device=<id> into
+        // customer + service-location IDs and forwards to the
+        // canonical test-form URL.
+        const sep = props.returnTo.includes("?") ? "&" : "?";
+        router.push(`${props.returnTo}${sep}device=${data.id}`);
+      } else {
+        router.push(props.backHref);
+      }
       return;
     }
 

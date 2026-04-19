@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PencilIcon, PlusIcon } from "lucide-react";
+import {
+  AddDeviceBanner,
+  buildReturnToQuery,
+} from "@/components/app/add-device-banner";
 import { BackLink } from "@/components/app/back-link";
 import { Button } from "@/components/ui/button";
+import { safeNextPath } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/supabase/server";
 import { customerDisplayName, getCustomer } from "@/lib/db/customers";
 import {
@@ -19,8 +24,10 @@ export const metadata: Metadata = { title: "Customer" };
 
 export default async function CustomerDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ returnTo?: string; serial?: string }>;
 }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -31,6 +38,14 @@ export default async function CustomerDetailPage({
   ]);
 
   if (!customer) notFound();
+
+  const sp = await searchParams;
+  const returnTo = sp.returnTo ? safeNextPath(sp.returnTo, "") : "";
+  const serial = sp.serial?.trim() ?? "";
+  const inAddDeviceFlow = returnTo !== "" && serial !== "";
+  const forwardQuery = inAddDeviceFlow
+    ? buildReturnToQuery(returnTo, serial)
+    : "";
 
   const displayName = customerDisplayName(customer);
   const billingLines = [
@@ -65,6 +80,10 @@ export default async function CustomerDetailPage({
           </p>
         ) : null}
       </div>
+
+      {inAddDeviceFlow ? (
+        <AddDeviceBanner serial={serial} step="location" />
+      ) : null}
 
       <section className="rounded-lg border bg-card p-6 shadow-sm">
         <h2 className="text-sm font-medium text-muted-foreground">
@@ -134,7 +153,7 @@ export default async function CustomerDetailPage({
               return (
                 <li key={l.id}>
                   <Link
-                    href={`/customers/${customer.id}/locations/${l.id}`}
+                    href={`/customers/${customer.id}/locations/${l.id}${forwardQuery}`}
                     className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted"
                   >
                     <span className="min-w-0 flex-1">

@@ -8,7 +8,16 @@ import {
   type CustomerListRow,
 } from "@/lib/db/customers";
 
-export function CustomerList({ rows }: { rows: CustomerListRow[] }) {
+export function CustomerList({
+  rows,
+  linkSuffix = "",
+}: {
+  rows: CustomerListRow[];
+  // URL suffix forwarded onto each row link. Used by the Q13
+  // add-device flow to carry returnTo + serial through to the
+  // customer detail page.
+  linkSuffix?: string;
+}) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -55,7 +64,7 @@ export function CustomerList({ rows }: { rows: CustomerListRow[] }) {
           {filtered.map((r) => (
             <li key={r.id}>
               <Link
-                href={`/customers/${r.id}`}
+                href={`/customers/${r.id}${linkSuffix}`}
                 className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted"
               >
                 <span className="truncate font-medium">

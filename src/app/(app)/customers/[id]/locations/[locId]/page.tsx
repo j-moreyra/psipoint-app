@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PencilIcon, PlusIcon } from "lucide-react";
+import {
+  AddDeviceBanner,
+  buildReturnToQuery,
+} from "@/components/app/add-device-banner";
 import { BackLink } from "@/components/app/back-link";
 import { Button } from "@/components/ui/button";
+import { safeNextPath } from "@/lib/auth/safe-next";
 import { createClient } from "@/lib/supabase/server";
 import { customerDisplayName, getCustomer } from "@/lib/db/customers";
 import {
@@ -30,8 +35,10 @@ export const metadata: Metadata = { title: "Service location" };
 
 export default async function ServiceLocationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; locId: string }>;
+  searchParams: Promise<{ returnTo?: string; serial?: string }>;
 }) {
   const { id, locId } = await params;
   const supabase = await createClient();
@@ -45,6 +52,14 @@ export default async function ServiceLocationDetailPage({
   if (!customer || !location || location.customer_id !== customer.id) {
     notFound();
   }
+
+  const sp = await searchParams;
+  const returnTo = sp.returnTo ? safeNextPath(sp.returnTo, "") : "";
+  const serial = sp.serial?.trim() ?? "";
+  const inAddDeviceFlow = returnTo !== "" && serial !== "";
+  const forwardQuery = inAddDeviceFlow
+    ? buildReturnToQuery(returnTo, serial)
+    : "";
 
   const displayName = serviceLocationDisplayName(location);
   const addressLines = [
@@ -78,11 +93,15 @@ export default async function ServiceLocationDetailPage({
       ? hazardTypeLabels[location.hazard_type as HazardType]
       : null;
 
+  const backHref = inAddDeviceFlow
+    ? `/customers/${customer.id}${forwardQuery}`
+    : `/customers/${customer.id}`;
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
       <div className="space-y-1">
         <BackLink
-          href={`/customers/${customer.id}`}
+          href={backHref}
           label={customerDisplayName(customer)}
         />
         <div className="flex items-start justify-between gap-3">
@@ -109,6 +128,10 @@ export default async function ServiceLocationDetailPage({
           </p>
         ) : null}
       </div>
+
+      {inAddDeviceFlow ? (
+        <AddDeviceBanner serial={serial} step="add-device" />
+      ) : null}
 
       <section className="rounded-lg border bg-card p-6 shadow-sm">
         <h2 className="text-sm font-medium text-muted-foreground">
@@ -171,7 +194,7 @@ export default async function ServiceLocationDetailPage({
             nativeButton={false}
             render={
               <Link
-                href={`/customers/${customer.id}/locations/${location.id}/devices/new`}
+                href={`/customers/${customer.id}/locations/${location.id}/devices/new${forwardQuery}`}
               />
             }
           >
