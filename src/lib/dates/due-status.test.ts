@@ -159,6 +159,87 @@ describe("deviceStatus", () => {
     expect(deviceStatus(d, TODAY)).toBe("due_soon");
     expect(deviceStatus(d, TODAY, 30)).toBe("current");
   });
+
+  it("never_tested wins even when next_test_due_date is set", () => {
+    // Defense in depth — if DB somehow has a next_test_due_date
+    // without a last_tested_date, the logic still classifies this as
+    // never_tested. The trigger won't produce this state but the DB
+    // schema allows it independently.
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: null,
+          next_test_due_date: "2026-06-01",
+          next_due_override: null,
+        },
+        TODAY,
+      ),
+    ).toBe("never_tested");
+  });
+
+  it("windowDays=0 treats exactly-today as due_soon, tomorrow as current", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-04-18",
+          next_test_due_date: "2026-04-18",
+          next_due_override: null,
+        },
+        TODAY,
+        0,
+      ),
+    ).toBe("due_soon");
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-04-19",
+          next_test_due_date: "2026-04-19",
+          next_due_override: null,
+        },
+        TODAY,
+        0,
+      ),
+    ).toBe("current");
+  });
+
+  it("far-future due date stays current", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2026-01-01",
+          next_test_due_date: "2099-12-31",
+          next_due_override: null,
+        },
+        TODAY,
+      ),
+    ).toBe("current");
+  });
+
+  it("next_due_override overrides a past next_test_due_date to current", () => {
+    expect(
+      deviceStatus(
+        {
+          last_tested_date: "2025-01-01",
+          next_test_due_date: "2025-10-10", // overdue
+          next_due_override: "2027-01-01", // override pushes it out
+        },
+        TODAY,
+      ),
+    ).toBe("current");
+  });
+
+  it("defaults today to new Date() when not supplied", () => {
+    // Just confirm the call shape works without an explicit date — any
+    // valid status is fine; we care that it doesn't throw.
+    const status = deviceStatus({
+      last_tested_date: "2025-01-01",
+      next_test_due_date: "2099-12-31",
+      next_due_override: null,
+    });
+    expect(["overdue", "due_soon", "current", "never_tested"]).toContain(
+      status,
+    );
+  });
 });
 
 describe("isOverdue", () => {
@@ -307,5 +388,39 @@ describe("bucketByDueStatus", () => {
     };
     expect(bucketByDueStatus([borderline], TODAY, 60).dueSoon).toHaveLength(1);
     expect(bucketByDueStatus([borderline], TODAY, 30).current).toHaveLength(1);
+  });
+
+  it("all-overdue input populates only the overdue bucket", () => {
+    const allOverdue: DueStatusInput[] = [
+      {
+        last_tested_date: "2025-01-01",
+        next_test_due_date: "2026-01-01",
+        next_due_override: null,
+      },
+      {
+        last_tested_date: "2024-01-01",
+        next_test_due_date: "2025-01-01",
+        next_due_override: null,
+      },
+    ];
+    const b = bucketByDueStatus(allOverdue, TODAY);
+    expect(b.overdue).toHaveLength(2);
+    expect(b.dueSoon).toEqual([]);
+    expect(b.current).toEqual([]);
+    expect(b.neverTested).toEqual([]);
+  });
+
+  it("respects the next_due_override column for bucketing", () => {
+    // Raw next_test_due_date is overdue; the override pulls it into
+    // the current bucket. Confirms bucketByDueStatus flows through
+    // deviceStatus rather than hitting next_test_due_date directly.
+    const overridden: DueStatusInput = {
+      last_tested_date: "2026-01-01",
+      next_test_due_date: "2025-10-01",
+      next_due_override: "2027-01-01",
+    };
+    const b = bucketByDueStatus([overridden], TODAY);
+    expect(b.current).toHaveLength(1);
+    expect(b.overdue).toHaveLength(0);
   });
 });
