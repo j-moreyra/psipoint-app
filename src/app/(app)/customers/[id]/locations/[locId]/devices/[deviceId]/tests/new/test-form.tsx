@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, type UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AlertCircleIcon } from "lucide-react";
@@ -13,11 +14,14 @@ import {
   isCalibrationStale,
   isGaugeChanged,
 } from "@/lib/dates/gauge-notice";
+import { createClient } from "@/lib/supabase/client";
+import { dbErrorMessage } from "@/lib/db/errors";
 import {
   testResultFormDefaults,
   testResultSchema,
   testResultValueLabels,
   testResultValues,
+  toTestResultInsert,
   type TestResultInput,
   type TestResultValue,
 } from "@/lib/validation/test-results";
@@ -55,6 +59,7 @@ const textareaClass = cn(
 );
 
 export function TestForm(props: TestFormProps) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
   const defaultValues = testResultFormDefaults(
@@ -94,11 +99,37 @@ export function TestForm(props: TestFormProps) {
   // matches the runtime variant.
   const looseErrors = errors as Record<string, { message?: string } | undefined>;
 
-  async function onSubmit(_values: TestResultInput) {
-    // Unit 14 wires this to createTestResult + redirect.
+  async function onSubmit(values: TestResultInput) {
     setSubmitting(true);
-    toast.info("Test submit lands in unit 14.");
-    setTimeout(() => setSubmitting(false), 400);
+    const supabase = createClient();
+
+    const payload = toTestResultInsert(values, {
+      companyId: props.companyId,
+      customerId: props.customerId,
+      serviceLocationId: props.serviceLocationId,
+      deviceId: props.deviceId,
+      testerId: props.testerId,
+    });
+
+    // Inline insert follows the Phase-2 device-form pattern — no
+    // dedicated createTestResult helper. The existing
+    // update_device_last_tested trigger handles device denorm
+    // (last_tested_date, last_test_result, next_test_due_date)
+    // server-side.
+    const { error } = await supabase.from("test_results").insert(payload);
+    setSubmitting(false);
+
+    if (error) {
+      toast.error(dbErrorMessage(error, "Couldn't save the test."));
+      return;
+    }
+
+    toast.success("Test saved.");
+    // Device detail now shows the new row via unit 15's history
+    // panel. router.refresh() ensures the server component re-runs
+    // with the freshly denormalized last_tested_date.
+    router.push(props.backHref);
+    router.refresh();
   }
 
   return (
