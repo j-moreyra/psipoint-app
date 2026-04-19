@@ -78,11 +78,13 @@ export function TestForm(props: TestFormProps) {
   // a re-render of the rest of the form.
   const currentGauge = watch("test_gauge_serial");
   const currentCal = watch("test_gauge_calibration_date");
+  const currentResult = watch("result");
   const gaugeChanged = isGaugeChanged(
     currentGauge ?? "",
     props.lastTest?.test_gauge_serial,
   );
   const calStale = isCalibrationStale(currentCal ?? "");
+  const showRetestBlock = currentResult === "fail";
 
   // Errors on per-type readings (check_valve_*, relief, air_inlet)
   // aren't part of every variant in TestResultInput, so react-hook-
@@ -222,7 +224,13 @@ export function TestForm(props: TestFormProps) {
           />
         </Field>
 
-        {/* Fail → retest conditional block lands in unit 13. */}
+        {showRetestBlock ? (
+          <FailRetestBlock
+            deviceType={props.deviceType}
+            register={register}
+            errors={looseErrors}
+          />
+        ) : null}
 
         <div className="flex justify-end pt-2">
           <Button type="submit" disabled={submitting}>
@@ -344,6 +352,169 @@ function PerTypeReadings({
             />
           </Field>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Repairs + retest block — only rendered when initial result = fail.
+// Schema keeps every field optional even in this state: a device can
+// fail so badly a retest isn't possible, and the tester should still
+// be able to record what they found. The UX just reveals the fields;
+// it doesn't force completion. Per-type retest readings match the
+// blueprint's test_results columns — no retest_air_inlet_opening is
+// provisioned, so PVB/SVB retests only capture the check valve.
+function FailRetestBlock({
+  deviceType,
+  register,
+  errors,
+}: {
+  deviceType: DeviceType;
+  register: LooseRegister;
+  errors: Record<string, { message?: string } | undefined>;
+}) {
+  const hasRetestReadings = deviceType !== "AVB";
+  return (
+    <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">
+          Repairs & retest
+        </h3>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Record what was found, what was done, and — if you retested —
+          the new reading. Leave blank if a retest wasn&rsquo;t possible.
+        </p>
+      </div>
+
+      <Field
+        id="repairs_made"
+        label="Repairs made"
+        error={errors.repairs_made?.message}
+      >
+        <textarea
+          id="repairs_made"
+          rows={3}
+          className={textareaClass}
+          {...register("repairs_made")}
+        />
+      </Field>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field
+          id="retest_date"
+          label="Retest date"
+          error={errors.retest_date?.message}
+        >
+          <Input
+            id="retest_date"
+            type="date"
+            {...register("retest_date")}
+          />
+        </Field>
+        <RetestResultRadios register={register} />
+      </div>
+
+      {hasRetestReadings ? (
+        <div>
+          <p className="mb-2 text-sm font-medium text-foreground">
+            Retest readings
+          </p>
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-4",
+              deviceType === "RP" ? "sm:grid-cols-3" : "sm:grid-cols-2",
+            )}
+          >
+            <Field
+              id="retest_check_valve_1_psid"
+              label={
+                deviceType === "PVB" || deviceType === "SVB"
+                  ? "Check valve PSID"
+                  : "Check valve #1 PSID"
+              }
+              error={errors.retest_check_valve_1_psid?.message}
+              hint="0–999.9"
+            >
+              <Input
+                id="retest_check_valve_1_psid"
+                inputMode="decimal"
+                {...register("retest_check_valve_1_psid")}
+              />
+            </Field>
+
+            {(deviceType === "RP" || deviceType === "DC") && (
+              <Field
+                id="retest_check_valve_2_psid"
+                label="Check valve #2 PSID"
+                error={errors.retest_check_valve_2_psid?.message}
+                hint="0–999.9"
+              >
+                <Input
+                  id="retest_check_valve_2_psid"
+                  inputMode="decimal"
+                  {...register("retest_check_valve_2_psid")}
+                />
+              </Field>
+            )}
+
+            {deviceType === "RP" && (
+              <Field
+                id="retest_relief_valve_opening"
+                label="Relief valve opening"
+                error={errors.retest_relief_valve_opening?.message}
+                hint="PSID at which RV opens."
+              >
+                <Input
+                  id="retest_relief_valve_opening"
+                  inputMode="decimal"
+                  {...register("retest_relief_valve_opening")}
+                />
+              </Field>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// Three-option retest result: not retested (the empty default),
+// retested & passed, retested & failed. Explicit "not retested" radio
+// so testers can snap back to the no-retest state after clicking Pass/
+// Fail by mistake — no clear button needed.
+function RetestResultRadios({ register }: { register: LooseRegister }) {
+  const options: Array<{ value: "" | "pass" | "fail"; label: string }> = [
+    { value: "", label: "Not retested" },
+    { value: "pass", label: "Retested — Pass" },
+    { value: "fail", label: "Retested — Fail" },
+  ];
+  return (
+    <div>
+      <p
+        id="retest-result-label"
+        className="mb-1.5 text-sm font-medium text-foreground"
+      >
+        Retest result
+      </p>
+      <div
+        role="radiogroup"
+        aria-labelledby="retest-result-label"
+        className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+      >
+        {options.map((o) => (
+          <label
+            key={o.value || "none"}
+            className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-2 py-1.5 text-xs font-medium transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+          >
+            <input
+              type="radio"
+              className="accent-primary"
+              value={o.value}
+              {...register("retest_result")}
+            />
+            {o.label}
+          </label>
+        ))}
       </div>
     </div>
   );
