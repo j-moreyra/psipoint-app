@@ -89,6 +89,26 @@ export const optionalPsi = z.string().trim().refine(
 export const nullIfEmpty = (s: string): string | null =>
   s.length > 0 ? s : null;
 
+// US phone normalizer. Accepts anything the tester types and returns a
+// readable canonical form on save:
+//   10 digits         → "(XXX) XXX-XXXX"
+//   11 digits w/ "1"  → "+1 (XXX) XXX-XXXX"
+// Anything else (partial, international, extension text) passes through
+// trimmed — we don't want to mangle a number we don't recognize. Empty
+// string stays empty so `nullIfEmpty` can still kick in afterwards.
+export function normalizePhoneUs(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed === "") return "";
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+  if (digits.length === 11 && digits.startsWith("1")) {
+    return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+  return trimmed;
+}
+
 // Supabase-generated RPC Args types use `field?: string` (optional,
 // defaulted in SQL). Use this for .rpc() payloads so undefined gets
 // stripped by JSON.stringify and Postgres applies the default.

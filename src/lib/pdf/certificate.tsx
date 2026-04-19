@@ -501,11 +501,15 @@ function Reading({
   value: string;
   unit: string;
 }) {
+  // Empty readings render as "—" with no trailing unit label — otherwise
+  // the "PSID" underneath a lone em-dash reads like a stray metadata
+  // line rather than a missing value.
+  const hasValue = value !== "—";
   return (
     <View style={styles.readingBox}>
       <Text style={styles.readingLabel}>{label}</Text>
       <Text style={styles.readingValue}>{value}</Text>
-      <Text style={styles.readingUnit}>{unit}</Text>
+      {hasValue ? <Text style={styles.readingUnit}>{unit}</Text> : null}
     </View>
   );
 }

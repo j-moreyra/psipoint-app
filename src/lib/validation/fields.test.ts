@@ -3,6 +3,7 @@ import {
   cappedOptionalText,
   FIELD_LIMITS,
   maxLenMsg,
+  normalizePhoneUs,
   nullIfEmpty,
   optionalDate,
   optionalEmail,
@@ -349,5 +350,45 @@ describe("toRequiredEnum", () => {
 
   it("falls back for empty", () => {
     expect(toRequiredEnum("", allowed, "RP")).toBe("RP");
+  });
+});
+
+describe("normalizePhoneUs", () => {
+  it("formats a 10-digit number as (XXX) XXX-XXXX", () => {
+    expect(normalizePhoneUs("7868775426")).toBe("(786) 877-5426");
+  });
+
+  it("strips punctuation from a 10-digit input", () => {
+    expect(normalizePhoneUs("(786) 877-5426")).toBe("(786) 877-5426");
+    expect(normalizePhoneUs("786.877.5426")).toBe("(786) 877-5426");
+    expect(normalizePhoneUs("786-877-5426")).toBe("(786) 877-5426");
+    expect(normalizePhoneUs("786 877 5426")).toBe("(786) 877-5426");
+  });
+
+  it("formats an 11-digit US number (leading 1)", () => {
+    expect(normalizePhoneUs("17868775426")).toBe("+1 (786) 877-5426");
+    expect(normalizePhoneUs("1-786-877-5426")).toBe("+1 (786) 877-5426");
+  });
+
+  it("returns empty string unchanged", () => {
+    expect(normalizePhoneUs("")).toBe("");
+  });
+
+  it("trims whitespace on empty-string input", () => {
+    expect(normalizePhoneUs("   ")).toBe("");
+  });
+
+  it("passes through non-US / partial numbers unchanged (trimmed)", () => {
+    expect(normalizePhoneUs("+44 20 7946 0958")).toBe("+44 20 7946 0958");
+    expect(normalizePhoneUs("867-5309")).toBe("867-5309");
+    expect(normalizePhoneUs("  +1 305 555 0100  ")).toBe("+1 (305) 555-0100");
+  });
+
+  it("doesn't format 11-digit numbers that don't start with 1", () => {
+    expect(normalizePhoneUs("27868775426")).toBe("27868775426");
+  });
+
+  it("passes through an extension as raw text", () => {
+    expect(normalizePhoneUs("786-877-5426 ext 42")).toBe("786-877-5426 ext 42");
   });
 });

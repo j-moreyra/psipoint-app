@@ -1,5 +1,6 @@
 import { deviceTypeLabels, type DeviceType } from "@/lib/validation/devices";
 import { customerDisplayName } from "@/lib/db/customers";
+import { normalizePhoneUs } from "@/lib/validation/fields";
 
 // Flat, presentation-ready shape consumed by both the Certificate PDF
 // and the certificate email. Keep it JSON-serializable so server actions
@@ -363,7 +364,7 @@ export function buildCertificateData(
       id: customer.id,
       displayName: customerDisplayName(customer),
       email: customer.email,
-      phone: customer.phone,
+      phone: formatPhone(customer.phone),
       billingAddress: {
         line1: customer.billing_address_line_1,
         line2: customer.billing_address_line_2,
@@ -387,7 +388,7 @@ export function buildCertificateData(
         serviceLocation.on_site_contact_first_name,
         serviceLocation.on_site_contact_last_name,
       ),
-      onSiteContactPhone: serviceLocation.on_site_contact_phone,
+      onSiteContactPhone: formatPhone(serviceLocation.on_site_contact_phone),
       onSiteContactEmail: serviceLocation.on_site_contact_email,
       waterDistrict: serviceLocation.water_district,
       hazardType: serviceLocation.hazard_type,
@@ -411,7 +412,7 @@ export function buildCertificateData(
         state: company.state,
         zip: company.zip,
       },
-      phone: company.phone,
+      phone: formatPhone(company.phone),
       website: company.website,
       logoUrl: company.logo_url,
       pdfFooter: company.default_pdf_footer,
@@ -422,6 +423,14 @@ export function buildCertificateData(
 function joinName(first: string | null, last: string | null): string | null {
   const joined = [first, last].filter(Boolean).join(" ").trim();
   return joined || null;
+}
+
+// Defensive phone formatter for rendered output. Existing stored data
+// may have been saved before the normalizer landed — format at render
+// so certs look right without a migration pass. No-op on null/empty.
+function formatPhone(raw: string | null): string | null {
+  if (!raw) return null;
+  return normalizePhoneUs(raw) || raw;
 }
 
 // Pretty-print an address block as a single comma-joined line. Missing

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { dueDateMethods } from "@/lib/validation/onboarding";
 import {
+  normalizePhoneUs,
   nullIfEmpty,
   optionalDate,
   optionalStateCode,
@@ -34,7 +35,7 @@ export function toCompanyUpdate(v: CompanyInput) {
     city: nullIfEmpty(v.city),
     state: nullIfEmpty(v.state.toUpperCase()),
     zip: nullIfEmpty(v.zip),
-    phone: nullIfEmpty(v.phone),
+    phone: nullIfEmpty(normalizePhoneUs(v.phone)),
     website: nullIfEmpty(v.website),
     next_due_calculation_method: v.next_due_calculation_method,
   };
@@ -60,7 +61,7 @@ export function toProfileUpdate(v: ProfileInput) {
   return {
     first_name: v.first_name,
     last_name: v.last_name,
-    phone: nullIfEmpty(v.phone),
+    phone: nullIfEmpty(normalizePhoneUs(v.phone)),
     license_number: v.license_number,
     license_expiration: v.license_expiration,
     license_issuing_authority: nullIfEmpty(v.license_issuing_authority),

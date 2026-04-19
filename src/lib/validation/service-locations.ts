@@ -2,6 +2,7 @@ import { z } from "zod";
 import {
   cappedOptionalText,
   FIELD_LIMITS,
+  normalizePhoneUs,
   nullIfEmpty,
   optionalEmail,
   requiredStateCode,
@@ -81,7 +82,7 @@ function toPayload(v: ServiceLocationInput) {
     location_type: v.location_type === "" ? null : v.location_type,
     on_site_contact_first_name: nullIfEmpty(v.on_site_contact_first_name),
     on_site_contact_last_name: nullIfEmpty(v.on_site_contact_last_name),
-    on_site_contact_phone: nullIfEmpty(v.on_site_contact_phone),
+    on_site_contact_phone: nullIfEmpty(normalizePhoneUs(v.on_site_contact_phone)),
     on_site_contact_email: nullIfEmpty(v.on_site_contact_email),
     water_district: nullIfEmpty(v.water_district),
     access_notes: nullIfEmpty(v.access_notes),
