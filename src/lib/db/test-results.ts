@@ -205,6 +205,23 @@ export type CertificateContext = BuildCertificateDataInput & {
   emailedTo: string | null;
 };
 
+// Defense-in-depth chain check for the certificate URL. The URL carries
+// /customers/:id/locations/:locId/devices/:deviceId/tests/:testId/…; the
+// test_result row itself is the ground truth for what customer / location
+// / device it belongs to. A stale bookmark or hand-edited URL with a
+// consistent-looking but wrong parent must not render the cert.
+// Mirrors the SF-2 pattern used elsewhere in the app.
+export function matchesCertificateChain(
+  ctx: Pick<CertificateContext, "testResult">,
+  params: { customerId: string; locationId: string; deviceId: string },
+): boolean {
+  return (
+    ctx.testResult.customer_id === params.customerId &&
+    ctx.testResult.service_location_id === params.locationId &&
+    ctx.testResult.device_id === params.deviceId
+  );
+}
+
 export async function getCertificateContext(
   db: DbClient,
   testResultId: string,
