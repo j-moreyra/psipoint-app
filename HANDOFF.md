@@ -1,7 +1,7 @@
 # HANDOFF.md — BackFLO
 
-> Last updated: 2026-04-19. Phase 3 complete.
-> Next update: at Phase 4 completion (PDF certificate + Resend email shipped).
+> Last updated: 2026-04-19. Phase 4 complete.
+> Next update: at Phase 5 completion (mobile polish + PWA + local form persistence).
 
 ## 1. Project Overview
 
@@ -17,8 +17,7 @@
 - Sonner for toasts; next-themes feeds sonner's theme
 - Vitest for unit tests
 - Netlify for hosting (linked to GitHub repo for auto-deploy)
-- Resend (Phase 4, not yet wired), Stripe (later)
-- `@react-pdf/renderer` (Phase 4)
+- `@react-pdf/renderer` (certificates), Resend + React Email (transactional email, Phase 4 — live), Stripe (later)
 
 **Key directories:**
 - `src/app/` — Next.js App Router pages/layouts
@@ -30,6 +29,9 @@
 - `src/components/app/` — shell UI (header, field, back-link, search bar, sign-out, add-device banner)
 - `src/components/auth/` — auth-shell card layout
 - `src/components/ui/` — shadcn primitives (don't hand-edit; regenerate via `npx shadcn@latest add`)
+- `src/lib/pdf/` — certificate data shaper + `@react-pdf/renderer` Certificate component + `renderCertificatePdf` wrapper (Phase 4)
+- `src/lib/storage/` — path builders + upload/download helpers for the `certificates` and `company-logos` buckets (Phase 4)
+- `src/lib/email/` — recipient resolver, payload builder, Resend client, React Email certificate template (Phase 4)
 - `supabase/migrations/` — forward-only SQL migrations
 
 **Reference docs:**
@@ -39,11 +41,11 @@
 
 ## 2. Current Status
 
-**Phase 3 (Unified search + Test entry + Dashboard) — complete and merged to main. Phase 4 (PDF + Email) — not started.**
+**Phase 4 (PDF + Email) — complete on `main`. Phase 5 (Polish + PWA) — not started.**
 
 - **GitHub:** https://github.com/j-moreyra/backflo-app (public)
 - **Active branch:** `main`
-- **Latest commit:** `837cebb feat(dashboard): Overdue + Due Soon + Recent Tests cards`
+- **Latest commit:** `6a44341 feat(certificate): server actions + certificate page + history links`
 - Deployed to Netlify deploy preview. Production Netlify site not yet connected.
 
 **Phase 3 delivery (15 commits, not yet squashed to a PR):**
@@ -69,6 +71,14 @@
 - 277 Vitest tests passing (was 197; +80: test_results Zod, gauge-notice, search helper, due-status refactor expansion)
 - `tsc --noEmit` + `npm run build` green
 
+**Phase 4 stats:**
+- 26 routes live (+`/customers/.../tests/[testId]/certificate`)
+- 6 migrations applied to Supabase (+ `20260419000000_phase4_storage.sql`)
+- 462 Vitest tests passing (was 340 post-Phase-3 test sweep; +57 new Phase 4 tests: `buildCertificateData` shape + branches, storage paths, recipient resolver, email payload builder)
+- New deps: `@react-pdf/renderer 4.5.1`, `resend`, `@react-email/components`, `@react-email/render`
+- `tsc --noEmit` + `npm run build` green
+- **End-to-end verified in browser** on the dev env: generate → upload → signed URL returns a valid 7.4 KB `%PDF-` file served from the `certificates` bucket via the Phase-4 RLS policy.
+
 **Dev DB state:**
 - Seeded via `scripts/seed.ts` on 2026-04-18 (5 customers / 15 service locations / 23 devices)
 - One extra test_results row created during unit-14 verification: `MT-DOM-001`, `test_date 2026-04-19`, `pass`, notes "Unit 14 submit verification. Safe to delete." — cleaned by next reseed.
@@ -82,26 +92,28 @@
 /reset-password, /reset-password/update, /check-email
 /auth/callback, /auth/signout
 /onboarding
-/dashboard                                                    (Phase 3: 3 live cards)
-/settings, /settings/profile, /settings/company
+/dashboard                                                    (Phase 3: 3 live cards; Recent rows link to certificate)
+/settings, /settings/profile, /settings/company               (Phase 4: logo upload on /settings/company)
 /tests/new                                                    (Phase 3: picker)
 /customers, /customers/new
 /customers/[id], /customers/[id]/edit
 /customers/[id]/locations/new
 /customers/[id]/locations/[locId], /customers/[id]/locations/[locId]/edit
 /customers/[id]/locations/[locId]/devices/new
-/customers/[id]/locations/[locId]/devices/[deviceId]
+/customers/[id]/locations/[locId]/devices/[deviceId]          (Phase 4: test-history rows link to certificate)
 /customers/[id]/locations/[locId]/devices/[deviceId]/edit
 /customers/[id]/locations/[locId]/devices/[deviceId]/tests/new  (Phase 3: canonical test form)
+/customers/[id]/locations/[locId]/devices/[deviceId]/tests/[testId]/certificate  (Phase 4)
 ```
 
-**What's NOT done yet (Phase 4+ scope):**
-- No PDF generation (`@react-pdf/renderer` not installed)
-- No transactional email delivery / Resend integration
-- No test-result detail page (device history rows are non-clickable; a `/tests/[id]` read-only page is post-MVP)
+**What's NOT done yet (Phase 5+ scope):**
+- No test-result *detail* page — the certificate page is the landing page; a read-only per-test view with edit affordance is Phase 5+
 - No customer portal
 - No deployment to production Supabase / production Netlify site
 - No paginated "show all tests" / "show all overdue" pages (Phase 5)
+- No PWA manifest / service worker, no local form persistence
+- Real Resend domain not yet verified — sends currently require a verified sender in the Resend dashboard
+- No Resend webhook receiver — bounces/complaints aren't tracked server-side
 
 ## 3. Architecture
 
@@ -127,6 +139,17 @@ All company-scoped tables carry `company_id` and are behind RLS.
 - **Routes (`src/app/(app)/customers/*`)** — full 4-level hierarchy: list/new/detail/edit at the customer level, locations/new and locations/[locId]/{detail,edit}, devices/new and devices/[deviceId]/{detail,edit}. Shared forms use discriminated-union props for create+edit. Detail pages defense-in-depth verify parent chain before rendering.
 - **Seed infrastructure** — `scripts/seed.ts` + `.env.seed` pattern. Gated by three safeguards: `ALLOW_SEEDING=true` must be explicit, `NEXT_PUBLIC_SUPABASE_URL` must contain `SEED_ALLOWED_PROJECT_REF`, and `SEED_COMPANY_ID` must be a valid UUID. Idempotent: wipes all customers for the target company before inserting (FK cascades).
 - **New migration — `20260418000000_create_customer_with_location_rpc.sql`** — adds `create_customer_with_location()`. **SECURITY INVOKER** (not DEFINER): the caller already has INSERT rights via RLS; the RPC just provides atomicity for the "billing = service" toggle path so a customer can't be orphaned if the location insert fails.
+
+### Phase 4 additions
+
+- **`src/lib/pdf/`** — three files. `certificate-data.ts` is a pure data shaper that takes raw rows (`test_result + device + service_location + customer + tester + company`) and returns a flat, JSON-serializable `CertificateData` with a discriminated `readings` union (`rp` / `dc` / `pvb_svb` / `avb`) and optional `retest`. `certificate.tsx` is the `@react-pdf/renderer` component — one `Document` with a shared scaffold (header+logo, 3-card customer/location/device row, meta row, readings, shutoffs, retest card when set, notes, dual signature, footer) and type-aware readings branches. `render.ts` is a `renderToBuffer` wrapper — type-cast against the library's strict `ReactElement<DocumentProps>` signature is narrow and intentional.
+- **`src/lib/storage/`** — `paths.ts` with `certificatePath(companyId, testResultId)` → `<uuid>/<uuid>.pdf`, `logoPath(companyId, ext)` → `<uuid>/logo.<png|jpg|jpeg|webp>`, UUID + ext guards throw on bad input (internal APIs, a bad call is a bug). `certificates.ts` exposes `uploadCertificatePdf` (upsert=true for idempotent retry) and `createCertificateSignedUrl` (60s TTL). `logos.ts` adds `fetchCompanyLogoDataUrl` (downloads via RLS, returns a data URL for `@react-pdf/renderer`), `createLogoPreviewUrl` (5min TTL for the settings page), and upload/delete. `errors.ts` mirrors `db/errors.ts` — never leak SDK text.
+- **`src/lib/email/`** — `recipients.ts` builds the picker options (billing / on-site / custom) from `CertificateData`, dedupes case-insensitive. `certificate-email.ts` builds the Resend payload (subject, filename, HTML+text, PDF attachment). `client.ts` is a lazy-init Resend wrapper (server-only; env lookup at first send so missing keys don't crash unrelated imports). `templates/certificate-ready.tsx` is the React Email template with pass/fail branches.
+- **New migration — `20260419000000_phase4_storage.sql`** — two private storage buckets (`certificates`, `company-logos`) + 8 RLS policies (4 verbs × 2 buckets), all gated on `(storage.foldername(name))[1] = public.user_company_id()::text`. No service-role anywhere.
+- **Server actions — `.../tests/[testId]/certificate/actions.ts`** — `generateCertificate` (fetch → shape → render → upload → stamp `pdf_url` → return signed URL), `sendCertificate` (assumes generated; download → build payload → Resend → stamp `emailed_at/emailed_to`), `refreshCertificateDownloadUrl` (fresh 60s URL for Download). Each returns a discriminated `{ ok, … } | { ok: false, stage }` so the client can show stage-specific toast copy — never a generic "something went wrong."
+- **Certificate route** — `/customers/[id]/locations/[locId]/devices/[deviceId]/tests/[testId]/certificate`. Server component chain-validates the URL against the test_result's FK columns (ground truth), renders a summary card + pass/fail badge, and mounts `CertificateActions` for Generate/Download/Email.
+- **Logo upload on `/settings/company`** — a `LogoUpload` card sits above the company form. PNG/JPG/WebP, 2MB cap. Writes to `company-logos` and stamps `companies.logo_url`. Preview uses a 5-min signed URL server-side; after upload switches to a browser object URL for instant feedback.
+- **Dashboard + device detail row links** — Recent Tests rows and device-detail test-history rows now click through to the certificate page (replaces Phase-3's deliberately non-clickable rows). `listRecentTests` picks up `service_location_id` so the dashboard link resolves.
 
 ### Phase 3 additions
 
@@ -228,8 +251,9 @@ A template lives at `.env.local.example` (gitignore whitelists this specific fil
 | `20260417130000_length_constraints.sql` | `char_length` CHECK constraints on every user-text column (caps: names 200, emails 255, phones 50, notes 5000) |
 | `20260418000000_create_customer_with_location_rpc.sql` | `create_customer_with_location()` SECURITY **INVOKER** — atomic customer + first service-location insert for the "billing = service" toggle. Stamps `company_id` from `user_company_id()`, not a parameter |
 | `20260418010000_search_devices_by_serial_rpc.sql` | `search_devices_by_serial(p_query, p_threshold=0.3, p_limit=10)` SECURITY INVOKER. pg_trgm similarity backed by `idx_devices_serial_trgm`; joins service_location + customer context. Effective threshold floor is 0.3 (the `%` operator holds the default `pg_trgm.similarity_threshold` GUC) — tunable upward, not downward |
+| `20260419000000_phase4_storage.sql` | Two private storage buckets (`certificates`, `company-logos`) + 8 RLS policies on `storage.objects` (4 verbs × 2 buckets) — all gated on the leading path segment matching `public.user_company_id()::text`. No service-role use. |
 
-All five applied via the Supabase MCP's `apply_migration` tool.
+All six applied via the Supabase MCP's `apply_migration` tool.
 
 ## 4. Key Decisions
 
@@ -262,6 +286,22 @@ All five applied via the Supabase MCP's `apply_migration` tool.
 - **"Billing = service" toggle on new-customer form only**, not on edit. Once customer + locations exist as separate rows they're edited independently (no cross-linked state to keep in sync).
 - **Seed script security model** — `.env.seed` separate from `.env.local`; app never reads the service-role key; seed gated by `ALLOW_SEEDING` opt-in + project-ref match + UUID check.
 - **`create_customer_with_location()` is SECURITY INVOKER, not DEFINER** — different from the Phase 1 signup RPC. The caller already has INSERT rights via RLS; we only need transaction atomicity. No privilege escalation needed, so SECURITY DEFINER would be unnecessary attack surface.
+
+### Phase 4 decisions
+
+- **One `Certificate` component with type-aware readings branches, not five.** RP/DC/PVB/SVB/AVB share ~80% of layout; branching a subcomponent (`ReadingsBlock`) is cheaper than 5 near-duplicates. Mirrors the test form's `PerTypeReadings` pattern — changes to the cert data shape get caught at the one diff site.
+- **No service-role key in the Phase 4 server actions.** Storage writes flow through the caller's authenticated session; RLS policies on `storage.objects` gate on the leading path segment equalling `user_company_id()::text`. Preserves the project-wide rule from Phase 1.
+- **Synchronous generate, not queued.** A single-page PDF renders in <200ms, so queuing adds infra cost without the latency payoff. The route returns on success with a signed URL; retries are idempotent because the storage key is deterministic. If renders ever grow past ~1s at scale, `renderToStream` + a background job is a two-file swap inside `src/lib/pdf/`.
+- **Generate is a deliberate user action, not auto-on-save.** Keeps test submission and certificate generation decoupled so a PDF-render failure doesn't risk losing the test row. Device detail history rows link to the certificate page — tap through, then generate.
+- **Certificate generation and email send are separate actions.** If email fails, `pdf_url` is already stamped — retry sending doesn't regenerate the PDF. Stage-discriminated return types (`{ ok: false, stage: "pdf" | "storage" | "db" }` etc.) let the client surface actionable toast copy instead of "something went wrong."
+- **React Email for templates, not HTML strings.** Shared TSX/TS toolchain, typed props, same `CertificateData` source feeds PDF and email — no shape drift. `@react-email/render` produces the HTML at send time.
+- **Signed-URL TTLs: 60s for certificate downloads, 5 min for logo previews.** Certificate URLs are for an immediate "tap to download" — leaked links expire fast. Logo previews render on an interactive settings page, so a 5-min TTL keeps re-renders cheap while still expiring.
+- **Logos stored in a separate `company-logos` bucket.** Not in `certificates` because the path convention and TTL posture differ; a combined bucket would smear access patterns. Same RLS shape so one mental model covers both.
+- **Private buckets only — no `public = true`.** Even logos aren't fully public content: a tester's logo is PII-adjacent. Everything flows through RLS + signed URLs.
+- **Chain validation uses the `test_result` FK columns as ground truth,** not the nested-join IDs. A stale URL with consistent-looking joined IDs could still mismatch the test row's own FKs. Matches the defense-in-depth pattern from Phase 2 detail pages.
+- **`generateCertificate` swallows logo-fetch failures.** Missing logo ≠ failed PDF. If the company has a logo path but Storage read fails, the render continues with a text-only header.
+- **PNG/JPG/WebP for logos; no SVG.** `@react-pdf/renderer` handles raster natively; SVG requires extra setup (font resolution, path rasterization) that's not worth the Phase-4 scope.
+- **`test_results.pdf_url` stores the bucket-qualified path (`certificates/<company>/<test>.pdf`)** rather than a signed URL. Signed URLs expire; the path is stable. The page regenerates a fresh signed URL via the refresh action whenever the Download button is clicked.
 
 ### Phase 3 decisions
 
@@ -316,6 +356,18 @@ Additional Phase 3 calls:
 
 197 tests passing (78 → 197). tsc + build green. Deploy preview on Netlify green.
 
+### Phase 4 — PDF + Email (shipped 2026-04-19)
+
+Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → email loop end-to-end on the dev environment.
+
+- **Foundation (units 1–4):** storage migration applied via MCP (2 buckets + 8 RLS policies); `buildCertificateData` pure shaper + 24 tests; `Certificate` React-PDF component with RP/DC/PVB/SVB/AVB branches + `renderToBuffer` wrapper; storage path builders + upload/download helpers + 15 tests.
+- **UI (unit 5):** `LogoUpload` on `/settings/company` — private bucket, 5-min signed URL preview, browser object URL after upload for instant feedback, deletes stale logos when extension changes.
+- **Email (units 6–7):** `recipients.ts` → picker options with case-insensitive dedupe (11 tests); `certificate-email.ts` → subject/filename/payload builder (7 tests); React Email template with plain-text fallback; `client.ts` lazy-init Resend wrapper.
+- **Actions + page + links (units 8–10):** `generateCertificate` / `sendCertificate` / `refreshCertificateDownloadUrl` server actions with stage-discriminated results; `/tests/[testId]/certificate` page with chain validation + summary card + actions component; device-detail history rows and dashboard Recent Tests rows now link through to the certificate page (replaces Phase-3's deliberately non-clickable rows).
+- **Verification:** clicked Generate PDF in the preview on the seeded `MT-DOM-001` row — toast "Certificate generated", UI flipped to Regenerate/Download, signed URL returned a 7.4 KB `%PDF-` file. Confirmed end-to-end through storage RLS without needing service-role.
+
+340 → 462 tests. 25 → 26 routes. 5 → 6 migrations. `tsc` + `build` green.
+
 ### Phase 3 — Unified search + Test entry + Dashboard (shipped 2026-04-19)
 15 commits landed the full test-entry loop end-to-end on the dev environment. Commits from `0b618b2 feat(db): add search_devices_by_serial RPC for fuzzy serial lookup` through `837cebb feat(dashboard): Overdue + Due Soon + Recent Tests cards`.
 
@@ -329,14 +381,15 @@ Additional Phase 3 calls:
 
 ## 6. Active Issues
 
-**No blocking issues.** Build is clean, tests pass (277), deploy preview green.
+**No blocking issues.** Build is clean, tests pass (462), deploy preview green, end-to-end certificate generation verified in the browser against the dev Supabase.
 
 **Open items / risks (non-blocking):**
 - **Pick a domain** — backflo.app / backflo.com / getbackflo.com / backflo.io still unchecked.
 - **USPTO trademark search for "BackFLO"** — pending.
 - **Production Netlify site not yet connected** — deploy preview only.
-- **Resend API key not yet configured** — Phase 4 need.
-- **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, FIELD_LIMITS drift, due-status buckets, and gauge-notice helpers (277 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch.
+- **Resend API key not yet provisioned** — `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in `.env.local.example` are blank stubs. PDF generation works without them; email sending requires both to be set + a verified Resend sender. Needed before first paying customer.
+- **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, FIELD_LIMITS drift, due-status buckets, gauge-notice helpers, certificate data shaping, storage path builders, email recipient/payload builders (462 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch, `@react-pdf/renderer` rendering output, Resend SDK.
+- **No Resend webhooks.** Bounces + complaints aren't tracked. First-customer milestone or before.
 - **No Supabase PITR.** Free tier doesn't offer point-in-time recovery. Once paying customers exist, upgrade is strongly recommended before schema changes that affect data.
 - **No error-reporting / observability.** No Sentry yet.
 - **`@netlify/plugin-nextjs` not explicitly pinned** in `netlify.toml` — relying on auto-detection.
@@ -365,11 +418,11 @@ Ordered by dependency / priority.
 - [x] Q13 zero-result add-new-device chain (returnTo + serial threading)
 - [x] Q11 gauge-change + stale-calibration soft notices
 
-**Phase 4 — PDF + Email** (blueprint §7 Phase 4, days 16–20):
-- [ ] `@react-pdf/renderer` certificate with company logo, all device-type variants
-- [ ] Upload generated PDFs to Supabase Storage (bucket needs creation + RLS policy)
-- [ ] Resend integration for transactional email
-- [ ] "Email to..." with choice of billing email vs. on-site contact email
+**Phase 4 — PDF + Email** (blueprint §7 Phase 4, days 16–20) — ✅ complete:
+- [x] `@react-pdf/renderer` certificate with company logo, all device-type variants
+- [x] Upload generated PDFs to Supabase Storage (bucket + RLS policy in `20260419000000_phase4_storage.sql`)
+- [x] Resend integration for transactional email — code complete; awaiting API key provisioning
+- [x] "Email to..." with choice of billing vs. on-site contact email (+ custom free-text)
 
 **Phase 5 — Polish + PWA** (blueprint §7 Phase 5, days 21–24):
 - [ ] Mobile QA on real iPhone + Android
@@ -418,6 +471,19 @@ Ordered by dependency / priority.
 - **Empty env vars are not unset env vars** — `KEY=` (no value) counts as "set" in most dotenv loaders. If `.env.seed` needs to provide a value and `.env.local` has an empty line for that key, `.env.local` wins and seeds fail confusingly. Delete empty lines entirely.
 - **Complete files only when handing off code** — placeholder comments ("paste data here") in code handoffs cause ~3-hour recovery sessions. Always reproduce the full file.
 
+### Lessons learned from Phase 4 shipping
+
+- **`@react-pdf/renderer` v4's `renderToBuffer` has an overly-strict `ReactElement<DocumentProps>` parameter type.** A wrapping function component (even when it returns `<Document>`) doesn't satisfy it. Narrow `as ReactElement<DocumentProps>` cast inside `src/lib/pdf/render.ts` is the ergonomic fix — runtime is correct.
+- **@react-pdf/renderer style arrays reject `undefined` entries.** Conditional `[base, cond ? extra : undefined]` triggers TS2769; use `cond ? [base, extra] : base` instead.
+- **Nullish coalescing (`??`) silently erases explicit `null` overrides in test fixtures.** When a helper accepts `{ email?: string | null }` and the default is `"foo@bar"`, passing `{ email: null }` with `o.email ?? default` returns the default, not null. Use `"email" in o ? o.email : default` or destructured defaults. Cost a cycle of red tests.
+- **Supabase storage RLS uses `(storage.foldername(name))[1]`, not the bucket path.** For bucket `certificates` and object `<uuid>/<uuid>.pdf`, `storage.foldername(name)` returns `{<uuid>}` — index `[1]` (Postgres arrays are 1-indexed). Confirmed working live by uploading a 7.4 KB PDF and reading it back via a 60s signed URL.
+- **`storage.buckets` INSERTs need `on conflict do nothing`** — re-running a migration (rare, but during dev iteration) would otherwise fail on bucket duplicates.
+- **`test_results` has `pdf_url`, `emailed_at`, `emailed_to` already provisioned from Phase 1 initial schema.** Phase 4 re-used them instead of adding a certificates table. One fewer table to RLS-gate.
+- **Lazy Resend init beats module-load init.** When `RESEND_API_KEY` is blank (as it is pre-provisioning), a module-load `new Resend(process.env.RESEND_API_KEY)` would throw during any import chain that touches `src/lib/email/client.ts` — e.g., `npm run build` or a tsc check. Moving the env read to first-send keeps the build green and isolates the failure to the action call.
+- **Signed-URL TTLs want two tiers.** 60s for certificate downloads (immediate-action, expires before the link escapes the browser), 5min for logo previews (interactive settings page, cheap re-renders). One TTL for everything would either churn unnecessarily or leak stale links.
+- **React Email's `render` needs `await`.** In 2026's version it's async. A forgotten await returns a Promise the attachment payload can't serialize — surfaces as a confusing "html is not a string" at send time. The payload builder awaits it.
+- **Dashboard Recent Tests rows intentionally lacked `service_location_id` in Phase 3.** Adding it was a one-line change to the `RECENT_COLUMNS` const; now the certificate link resolves without falling back to a search-and-pick round-trip.
+
 ### Lessons learned from Phase 3 shipping
 
 - **`test_results` has two FKs to `testers`** (`tester_id` for who ran the test + `reviewed_by` for the v2 review workflow). PostgREST refuses to auto-embed when there's ambiguity — use the `testers!tester_id(cols)` column-name hint on any joined `.select`. Error surfaces at tsc time (`SelectQueryError<"...more than one relationship...">`).
@@ -433,7 +499,7 @@ Ordered by dependency / priority.
 - **GitHub repo:** https://github.com/j-moreyra/backflo-app (public) ✓
 - **Supabase:** `backflo-dev` project active ✓
 - **Netlify:** site linked to `j-moreyra/backflo-app`. Pushes to `main` auto-deploy the primary URL at https://backflo-app.netlify.app; open PRs get ephemeral previews at `deploy-preview-N--backflo-app.netlify.app`. No manual deploys expected.
-- **Resend:** not yet set up (Phase 4)
+- **Resend:** integration code shipped Phase 4 but account/API key + verified sender not yet provisioned. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` remain blank stubs in `.env.local.example`; populate both + add them to Netlify env + verify a domain before first paying customer.
 - **Stripe:** not yet set up (post-MVP)
 
 ### Conventions (see `CLAUDE.md` for the full list)
