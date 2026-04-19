@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BuildingIcon, PlusIcon } from "lucide-react";
+import { BuildingIcon, PlusIcon, ZapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
@@ -32,7 +32,15 @@ export default async function DashboardPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button nativeButton={false} render={<Link href="/customers" />}>
+        <Button nativeButton={false} render={<Link href="/tests/new" />}>
+          <ZapIcon className="size-4" />
+          Start a test
+        </Button>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href="/customers" />}
+        >
           <BuildingIcon className="size-4" />
           Customers
         </Button>
