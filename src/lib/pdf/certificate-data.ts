@@ -121,6 +121,12 @@ export type AddressBlock = {
 
 export type TestResultRow = {
   id: string;
+  // FK columns — included so the page can run defense-in-depth URL
+  // chain validation against the ground-truth FKs instead of relying
+  // on nested-join IDs.
+  device_id: string;
+  service_location_id: string;
+  customer_id: string;
   test_date: string;
   result: string;
   check_valve_1_psid: number | string | null;

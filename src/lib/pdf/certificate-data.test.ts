@@ -22,6 +22,9 @@ function baseInput(overrides?: {
   return {
     testResult: {
       id: "11111111-2222-3333-4444-555555555555",
+      device_id: "dev-id",
+      service_location_id: "loc-id",
+      customer_id: "cust-id",
       test_date: "2026-04-19",
       result: "pass",
       check_valve_1_psid: 4.5,

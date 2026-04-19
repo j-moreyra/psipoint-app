@@ -248,28 +248,27 @@ function RecentTestRow({ test }: { test: TestResultRecentRow }) {
         contact_last_name: test.customers.contact_last_name,
       })
     : "Unknown customer";
-  const href = `/customers/${test.customer_id}/locations/device/${test.device_id}`;
-  // Note: recent-test rows don't have service_location_id in the join
-  // (kept the row shape narrow). Click falls through to a search that
-  // picks up the device — simpler than re-selecting the column set.
-  // For now the row renders without navigation; unit 17's follow-up
-  // can wire a deep link once a test-detail page exists.
-  void href;
+  const href = `/customers/${test.customer_id}/locations/${test.service_location_id}/devices/${test.device_id}/tests/${test.id}/certificate`;
 
   return (
-    <li className="flex items-center gap-3 px-4 py-3">
-      <ResultDot result={effective} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-          <span className="font-medium">{test.test_date}</span>
-          <span className="capitalize text-muted-foreground">
-            {effective}
-          </span>
+    <li>
+      <Link
+        href={href}
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
+      >
+        <ResultDot result={effective} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+            <span className="font-medium">{test.test_date}</span>
+            <span className="capitalize text-muted-foreground">
+              {effective}
+            </span>
+          </div>
+          <div className="truncate text-xs text-muted-foreground">
+            {[deviceLabel, customerLabel].filter(Boolean).join(" — ")}
+          </div>
         </div>
-        <div className="truncate text-xs text-muted-foreground">
-          {[deviceLabel, customerLabel].filter(Boolean).join(" — ")}
-        </div>
-      </div>
+      </Link>
     </li>
   );
 }

@@ -171,7 +171,11 @@ export default async function DeviceDetailPage({
         ) : (
           <ul className="divide-y rounded-lg border bg-card shadow-sm">
             {tests.map((t) => (
-              <TestHistoryRow key={t.id} test={t} />
+              <TestHistoryRow
+                key={t.id}
+                test={t}
+                certificateHref={`/customers/${customer.id}/locations/${location.id}/devices/${device.id}/tests/${t.id}/certificate`}
+              />
             ))}
           </ul>
         )}
@@ -181,10 +185,15 @@ export default async function DeviceDetailPage({
 }
 
 // Test history row — date · pass/fail dot (post-retest effective) ·
-// tester initials · notes snippet. Row intentionally non-clickable
-// for Phase 3; a test-detail page ships later. Hover still renders
-// the full notes via the title attribute.
-function TestHistoryRow({ test }: { test: TestResultDeviceRow }) {
+// tester initials · notes snippet. Clicks through to the Phase-4
+// certificate page. Hover still renders the full notes via `title`.
+function TestHistoryRow({
+  test,
+  certificateHref,
+}: {
+  test: TestResultDeviceRow;
+  certificateHref: string;
+}) {
   // Same effective-result logic as the update_device_last_tested
   // trigger: retest_result wins over the initial result when set.
   const effective = (test.retest_result ?? test.result) as "pass" | "fail";
@@ -195,33 +204,35 @@ function TestHistoryRow({ test }: { test: TestResultDeviceRow }) {
       : test.notes;
 
   return (
-    <li
-      className="flex items-center gap-3 px-4 py-3"
-      title={test.notes ?? undefined}
-    >
-      <ResultDot result={effective} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
-          <span className="font-medium">{test.test_date}</span>
-          <span className="capitalize text-muted-foreground">
-            {effective}
-            {wasRetested && effective === "pass" && test.result === "fail"
-              ? " (after retest)"
-              : ""}
-          </span>
-        </div>
-        {noteSnippet ? (
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {noteSnippet}
-          </p>
-        ) : null}
-      </div>
-      <span
-        aria-hidden
-        className="shrink-0 rounded-md border bg-background px-2 py-0.5 font-mono text-xs text-muted-foreground"
+    <li title={test.notes ?? undefined}>
+      <Link
+        href={certificateHref}
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
       >
-        {testerDisplayInitials(test.testers)}
-      </span>
+        <ResultDot result={effective} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-sm">
+            <span className="font-medium">{test.test_date}</span>
+            <span className="capitalize text-muted-foreground">
+              {effective}
+              {wasRetested && effective === "pass" && test.result === "fail"
+                ? " (after retest)"
+                : ""}
+            </span>
+          </div>
+          {noteSnippet ? (
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {noteSnippet}
+            </p>
+          ) : null}
+        </div>
+        <span
+          aria-hidden
+          className="shrink-0 rounded-md border bg-background px-2 py-0.5 font-mono text-xs text-muted-foreground"
+        >
+          {testerDisplayInitials(test.testers)}
+        </span>
+      </Link>
     </li>
   );
 }
