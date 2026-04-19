@@ -61,3 +61,52 @@ export async function getDevice(
 // Status classification moved to src/lib/dates/due-status.ts in unit 6
 // (Phase 3). Re-export kept out intentionally — callers import from
 // @/lib/dates/due-status directly.
+
+// Row shape returned by listActiveDevicesForDashboard. Joins the
+// service_location + customer so the dashboard can render each row
+// with enough context to be meaningful — RLS filters to the caller's
+// company so the nested objects are safe to trust.
+const DASHBOARD_COLUMNS =
+  "id, serial_number, manufacturer, model, type, last_tested_date, last_test_result, next_test_due_date, next_due_override, service_location_id, customer_id, service_locations(nickname, address_line_1, city), customers(company_name, contact_first_name, contact_last_name)" as const;
+
+export type DashboardDeviceRow = {
+  id: string;
+  serial_number: string;
+  manufacturer: string;
+  model: string;
+  type: string;
+  last_tested_date: string | null;
+  last_test_result: string | null;
+  next_test_due_date: string | null;
+  next_due_override: string | null;
+  service_location_id: string;
+  customer_id: string;
+  service_locations: {
+    nickname: string | null;
+    address_line_1: string;
+    city: string;
+  } | null;
+  customers: {
+    company_name: string | null;
+    contact_first_name: string | null;
+    contact_last_name: string | null;
+  } | null;
+};
+
+// Active-device feed for the dashboard buckets (Overdue / Due Soon /
+// never tested). RLS scopes to the caller's company. For Phase 3
+// MVP this pulls every active device — small shops have low
+// hundreds, and the partial index idx_devices_next_test_due on the
+// due column keeps the sort cheap. Phase 5 can paginate if a shop
+// ever crosses that threshold.
+export async function listActiveDevicesForDashboard(
+  db: DbClient,
+): Promise<DashboardDeviceRow[]> {
+  const { data, error } = await db
+    .from("devices")
+    .select(DASHBOARD_COLUMNS)
+    .eq("is_active", true)
+    .order("next_test_due_date", { ascending: true, nullsFirst: false });
+  if (error) throw error;
+  return data ?? [];
+}
