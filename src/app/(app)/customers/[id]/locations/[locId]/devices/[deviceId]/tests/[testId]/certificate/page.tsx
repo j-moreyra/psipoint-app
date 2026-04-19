@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BackLink } from "@/components/app/back-link";
 import { createClient } from "@/lib/supabase/server";
-import { getCertificateContext } from "@/lib/db/test-results";
+import {
+  getCertificateContext,
+  matchesCertificateChain,
+} from "@/lib/db/test-results";
 import { buildCertificateData } from "@/lib/pdf/certificate-data";
 import { buildRecipientOptions } from "@/lib/email/recipients";
 import { CertificateActions } from "./certificate-actions";
@@ -28,9 +31,11 @@ export default async function CertificatePage({
   // test-form page and the other detail pages.
   if (
     !ctx ||
-    ctx.testResult.customer_id !== id ||
-    ctx.testResult.service_location_id !== locId ||
-    ctx.testResult.device_id !== deviceId
+    !matchesCertificateChain(ctx, {
+      customerId: id,
+      locationId: locId,
+      deviceId,
+    })
   ) {
     notFound();
   }
