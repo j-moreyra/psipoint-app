@@ -115,20 +115,25 @@ export function TestForm(props: TestFormProps) {
     // dedicated createTestResult helper. The existing
     // update_device_last_tested trigger handles device denorm
     // (last_tested_date, last_test_result, next_test_due_date)
-    // server-side.
-    const { error } = await supabase.from("test_results").insert(payload);
+    // server-side. `.select("id").single()` returns the new row so we
+    // can deep-link to its certificate page.
+    const { data: inserted, error } = await supabase
+      .from("test_results")
+      .insert(payload)
+      .select("id")
+      .single();
     setSubmitting(false);
 
-    if (error) {
+    if (error || !inserted) {
       toast.error(dbErrorMessage(error, "Couldn't save the test."));
       return;
     }
 
     toast.success("Test saved.");
-    // Device detail now shows the new row via unit 15's history
-    // panel. router.refresh() ensures the server component re-runs
-    // with the freshly denormalized last_tested_date.
-    router.push(props.backHref);
+    // Land the tester on the new test's certificate page — generating
+    // and emailing the cert is the natural next action. They can
+    // back-link to the device or jump elsewhere from there.
+    router.push(`${props.backHref}/tests/${inserted.id}/certificate`);
     router.refresh();
   }
 

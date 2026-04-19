@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PencilIcon, ZapIcon } from "lucide-react";
+import { ChevronRightIcon, PencilIcon, ZapIcon } from "lucide-react";
 import { BackLink } from "@/components/app/back-link";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
@@ -232,6 +232,10 @@ function TestHistoryRow({
         >
           {testerDisplayInitials(test.testers)}
         </span>
+        <ChevronRightIcon
+          aria-hidden
+          className="size-4 shrink-0 text-muted-foreground"
+        />
       </Link>
     </li>
   );
