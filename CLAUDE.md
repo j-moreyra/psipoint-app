@@ -24,23 +24,31 @@ src/
                            reset-password[/update], check-email
     (app)/                 authed + onboarded shell:
                              layout.tsx (auth gate)
-                             dashboard/
+                             dashboard/               (overdue + due-soon + recent)
                              settings/{profile,company,...}
+                             customers/               (Phase 2 hierarchy)
+                             tests/new/               (Phase 3 picker)
                              error.tsx (app-scope error boundary)
+                           canonical test-form URL lives at
+                             customers/[id]/locations/[locId]/devices/[deviceId]/tests/new
     auth/                  route handlers: callback (GET), signout (POST)
     onboarding/            2-step setup form (own gate, no app shell)
     page.tsx               root — server-side auth redirect
     layout.tsx             root layout; metadata + <Toaster />
   components/
-    app/                   app-shell UI (header, field, back-link,
-                           sign-out-item) — used inside (app) routes
+    app/                   app-shell UI (header, search-bar, field,
+                           back-link, sign-out-item, add-device-banner)
+                           — used inside (app) routes
     auth/                  auth-shell (card layout used by (auth) pages)
     ui/                    shadcn primitives — do not edit freely;
                            regenerate via `npx shadcn@latest add <name>`
   lib/
     auth/                  errors.ts (code → friendly copy),
                            safe-next.ts (open-redirect guard)
-    db/                    errors.ts — generic DB error wrapper
+    db/                    typed helpers per entity + errors.ts generic
+                           wrapper + search.ts unified search
+    dates/                 due-status (buckets, 60d window) +
+                           gauge-notice (Q11 soft checks)
     supabase/              client, server, middleware, Database types
     validation/            Zod schemas and shared field primitives
 supabase/
@@ -51,10 +59,13 @@ supabase/
 
 **Validation.** Shared Zod primitives live in `src/lib/validation/fields.ts`
 (`requiredText`, `optionalText`, `optionalStateCode`, `requiredDate`,
-`optionalDate`, `nullIfEmpty`, `undefinedIfEmpty`). Schemas compose from
-these — don't inline new primitives. Form values stay as plain strings
-all the way through Zod; normalization to `null` (for `.update()`) or
-`undefined` (for `.rpc()`) happens at submit time via the to*-helpers.
+`optionalDate`, `optionalPsi`, `nullIfEmpty`, `undefinedIfEmpty`). Schemas
+compose from these — don't inline new primitives. Form values stay as
+plain strings all the way through Zod; normalization to `null` (for
+`.update()`) or `undefined` (for `.rpc()`) happens at submit time via
+the to*-helpers. Discriminated-union schemas (e.g., `test_results`
+keyed on `device_type`) carry a form-only discriminator via hidden
+input; strip it in the `to*Insert` helper.
 
 **Forms.** All form fields use `src/components/app/field.tsx` for
 label/error/hint layout. Wrap form controls in
@@ -113,14 +124,17 @@ Find your company UUID via the Supabase SQL editor:
 ## Testing
 
 Run `npm test` (vitest). Current coverage is unit-only:
-- Zod schemas and helpers
+- Zod schemas and helpers (including the `test_results` discriminated union)
 - Auth / DB error mappers
 - `safeNextPath()` open-redirect guard
+- DB helper guards (`isUuid` short-circuits)
+- Due-status buckets + gauge-notice soft checks (`src/lib/dates/`)
+- FIELD_LIMITS drift test — breaks if the Zod caps diverge from the DB CHECK constraints
 
 **Still missing (priority order for future work):**
 1. `pgTAP` or SQL-level tests for RLS policies
 2. Trigger math: `update_device_last_tested` for all 4 due-date methods
-3. Playwright e2e: signup → email confirm → onboarding → dashboard
+3. Playwright e2e: signup → email confirm → onboarding → dashboard → test entry
 
 ## Deploy
 
@@ -139,3 +153,9 @@ for prod + deploy previews.
   dashboard instead, and re-enable before leaving.
 - Don't commit `.env.local`. `.gitignore` covers it; don't remove the
   `!.env.local.example` exception.
+- Don't join `testers` from `test_results` without a column-name hint —
+  the two FKs (`tester_id` + `reviewed_by`) make PostgREST refuse to
+  auto-embed. Use `testers!tester_id(cols)` on reads.
+- Don't tune `p_threshold` on `search_devices_by_serial` below 0.3 —
+  the `%` operator holds the default `pg_trgm.similarity_threshold`
+  GUC as an effective floor. Tunable upward only.
