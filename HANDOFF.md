@@ -1,7 +1,7 @@
 # HANDOFF.md — BackFLO
 
-> Last updated: 2026-04-19. Phase 4 complete.
-> Next update: at Phase 5 completion (mobile polish + PWA + local form persistence).
+> Last updated: 2026-04-19. Phase 5 complete.
+> Next update: after first paying customer milestone (Resend provisioning, prod Netlify site, Sentry).
 
 ## 1. Project Overview
 
@@ -41,11 +41,11 @@
 
 ## 2. Current Status
 
-**Phase 4 (PDF + Email) — complete on `main`. Phase 5 (Polish + PWA) — not started.**
+**Phase 5 (Polish + PWA) — complete on `main`. All MVP phases shipped.**
 
 - **GitHub:** https://github.com/j-moreyra/backflo-app (public)
 - **Active branch:** `main`
-- **Latest commit:** `6a44341 feat(certificate): server actions + certificate page + history links`
+- **Latest commit:** `73bf9d2 feat(pwa): manifest, icons, hand-rolled service worker`
 - Deployed to Netlify deploy preview. Production Netlify site not yet connected.
 
 **Phase 3 delivery (15 commits, not yet squashed to a PR):**
@@ -79,6 +79,15 @@
 - `tsc --noEmit` + `npm run build` green
 - **End-to-end verified in browser** on the dev env: generate → upload → signed URL returns a valid 7.4 KB `%PDF-` file served from the `certificates` bucket via the Phase-4 RLS policy.
 
+**Phase 5 stats:**
+- 26 routes live (no new routes)
+- 6 migrations (no new migrations — Phase 5 is all app code)
+- 571 Vitest tests passing (was 550 after the post-Phase-4 coverage sweep; +21 new Phase 5 tests: license-warning thresholds, draft-key builder + TTL)
+- New deps: none in `dependencies`. `sharp` is used by the icon build script but ships as a transitive dep via next 16; no explicit install needed.
+- New public assets: `public/icon.svg`, `public/icon-{192,512}.png`, `public/icon-maskable-{192,512}.png`, `public/apple-touch-icon.png`, `public/manifest.webmanifest`, `public/sw.js`
+- `tsc --noEmit` + `npm run build` green
+- **Preview-verified:** manifest + icons + metadata wired correctly; service worker correctly skipped in dev; no console errors on login page after root-layout metadata changes.
+
 **Dev DB state:**
 - Seeded via `scripts/seed.ts` on 2026-04-18 (5 customers / 15 service locations / 23 devices)
 - One extra test_results row created during unit-14 verification: `MT-DOM-001`, `test_date 2026-04-19`, `pass`, notes "Unit 14 submit verification. Safe to delete." — cleaned by next reseed.
@@ -106,14 +115,15 @@
 /customers/[id]/locations/[locId]/devices/[deviceId]/tests/[testId]/certificate  (Phase 4)
 ```
 
-**What's NOT done yet (Phase 5+ scope):**
-- No test-result *detail* page — the certificate page is the landing page; a read-only per-test view with edit affordance is Phase 5+
+**What's NOT done yet (post-MVP scope):**
+- No test-result *detail* page — the certificate page is the landing page; a read-only per-test view with edit affordance is post-MVP
 - No customer portal
 - No deployment to production Supabase / production Netlify site
-- No paginated "show all tests" / "show all overdue" pages (Phase 5)
-- No PWA manifest / service worker, no local form persistence
+- No paginated "show all tests" / "show all overdue" pages (intentional — no signal yet that any MVP shop crosses the 10-row cap)
 - Real Resend domain not yet verified — sends currently require a verified sender in the Resend dashboard
 - No Resend webhook receiver — bounces/complaints aren't tracked server-side
+- No backfill action when `next_due_calculation_method` changes — switching the rule only affects tests recorded from that point forward. UI explains this; blueprint doesn't call for a backfill. Worth revisiting post-MVP if a shop asks.
+- No production brand icon — `public/icon.svg` ships a sky-600 "BF" monogram as a placeholder. Swap in a real mark before first customer; regenerate PNGs with `npm run build-icons`.
 
 ## 3. Architecture
 
@@ -139,6 +149,19 @@ All company-scoped tables carry `company_id` and are behind RLS.
 - **Routes (`src/app/(app)/customers/*`)** — full 4-level hierarchy: list/new/detail/edit at the customer level, locations/new and locations/[locId]/{detail,edit}, devices/new and devices/[deviceId]/{detail,edit}. Shared forms use discriminated-union props for create+edit. Detail pages defense-in-depth verify parent chain before rendering.
 - **Seed infrastructure** — `scripts/seed.ts` + `.env.seed` pattern. Gated by three safeguards: `ALLOW_SEEDING=true` must be explicit, `NEXT_PUBLIC_SUPABASE_URL` must contain `SEED_ALLOWED_PROJECT_REF`, and `SEED_COMPANY_ID` must be a valid UUID. Idempotent: wipes all customers for the target company before inserting (FK cascades).
 - **New migration — `20260418000000_create_customer_with_location_rpc.sql`** — adds `create_customer_with_location()`. **SECURITY INVOKER** (not DEFINER): the caller already has INSERT rights via RLS; the RPC just provides atomicity for the "billing = service" toggle path so a customer can't be orphaned if the location insert fails.
+
+### Phase 5 additions
+
+- **`src/lib/dates/license-warning.ts`** — pure threshold helper. `licenseWarning(expirationYmd, today)` returns `{ level: 'info' | 'warn' | 'urgent' | 'expired', daysLeft, expirationYmd }` or `null` when > 90 days remain or the date is missing/malformed. Thresholds const-exported at 90 / 60 / 30. Unit-tested at every band edge + bad-input cases.
+- **`src/components/app/license-banner.tsx`** — server component that renders the license warning above the dashboard CTA row. Tones: info (blue), warn (amber), urgent/expired (destructive). Copy escalates per level. Always links to `/settings/profile` for renewal. Dashboard-only placement by design — putting it in the header would be nagging.
+- **`src/lib/forms/draft-keys.ts` + `src/lib/forms/use-form-draft.ts`** — test-form draft persistence. Key builder `testDraftKey(deviceId)` stamps a schema version into the string (`backflo:draft:test:v1:<uuid>`) so future field-shape changes can invalidate old drafts. `useFormDraft({ key, form })` hook hydrates once on mount (with 7-day TTL), debounces writes at 300ms, clears on submit or explicit discard. SSR/quota/private-mode errors are swallowed. Pure helpers unit-tested; localStorage boundary is not (per rules).
+- **`src/app/(app)/customers/.../tests/new/test-form.tsx`** — wires the draft hook, shows a "Draft restored" pill with a Discard link when a snapshot hydrated, clears the draft after successful submit.
+- **`src/app/(app)/settings/company/due-date-method-card.tsx`** — promotes `next_due_calculation_method` off the company form into its own card at the top of `/settings/company`. Each option gets a one-line explainer. When the picked value differs from the saved value, an amber inline notice reveals below the options spelling out "new rule applies to new tests only — existing devices keep their current due dates." No modal (matches the app's SoftNotice pattern).
+- **`companySchema`** drops `next_due_calculation_method`; `DueDateMethodCard` owns that column independently. No schema migration needed — column shape unchanged.
+- **Loading skeletons** — five new `loading.tsx` files cover dashboard, `/tests/new` picker, canonical test form, certificate page, and `/settings/*`. Phase-2 cascade already covered customer list + detail; these fill the routes where the wrong shape was showing through.
+- **PWA assets** — `public/manifest.webmanifest`, `public/sw.js`, `public/icon-*.png` (regular + maskable + apple-touch), `public/icon.svg` source, `scripts/build-icons.ts` + `npm run build-icons` via sharp.
+- **`src/components/pwa/service-worker-register.tsx`** — client component mounted in the root layout. Registers `/sw.js` once in production only. `NEXT_PUBLIC_PWA_DEV=1` opt-in for local prod-build testing.
+- **Root layout metadata** — adds `manifest`, `applicationName`, `appleWebApp`, `icons` + `viewport.themeColor`.
 
 ### Phase 4 additions
 
@@ -356,6 +379,19 @@ Additional Phase 3 calls:
 
 197 tests passing (78 → 197). tsc + build green. Deploy preview on Netlify green.
 
+### Phase 5 — Polish + PWA (shipped 2026-04-19)
+
+Six commits (`8efc859` through `73bf9d2`) landed the MVP polish pass.
+
+- **Loading skeletons (unit 1):** five new `loading.tsx` files — dashboard, `/tests/new` picker, canonical test form, certificate page, `/settings/*`. Fill the routes where the Phase-2 cascade (customer list / detail skeletons) was showing through in the wrong shape.
+- **License expiration banner (unit 2):** pure helper `licenseWarning()` returns info/warn/urgent/expired levels at 90 / 60 / 30 / 0 day boundaries. Dashboard-only placement — the app header wasn't the place for a persistent nag. 12 new threshold tests.
+- **Due-date method card (unit 3):** promoted `next_due_calculation_method` off the company form into its own card at the top of `/settings/company`. Each option gets a one-line explainer. Changing the value reveals an amber inline notice warning that the new rule applies only to tests recorded from now on — existing devices keep their current due dates until their next test. `companySchema` drops the field; `DueDateMethodCard` saves it independently.
+- **Test-form draft persistence (unit 4):** `useFormDraft` hook debounces writes to `localStorage` at 300ms, hydrates once on mount, clears on submit or explicit discard. Keyed per device with a schema version. 7-day TTL drops old drafts silently. "Draft restored" pill with a Discard link surfaces when a snapshot loaded. 9 new tests on the key builder + TTL.
+- **PWA (unit 5):** placeholder BF monogram in `public/icon.svg` + `scripts/build-icons.ts` rasterizes to 192/512 regular + maskable + 180px apple-touch via sharp (available as a transitive dep via next 16 — no explicit install). Manifest `standalone` + start `/dashboard`, theme `#0284C7`. Hand-rolled `public/sw.js` (~90 lines): cache-first on static assets + icons + manifest, network-first on HTML, bypass on `/auth/*` and `/api/*`. `ServiceWorkerRegister` client component registers in production only (or with `NEXT_PUBLIC_PWA_DEV=1`). Root-layout metadata wires manifest + apple web app + theme-color.
+- **Closeout (unit 6):** HANDOFF refresh + mobile QA checklist.
+
+550 → 571 tests. 26 routes (unchanged). 6 migrations (unchanged). `tsc` + `build` + preview all green. No service-role key in app env. All forward-only — no migrations added this phase.
+
 ### Phase 4 — PDF + Email (shipped 2026-04-19)
 
 Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → email loop end-to-end on the dev environment.
@@ -393,7 +429,19 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 - **No Supabase PITR.** Free tier doesn't offer point-in-time recovery. Once paying customers exist, upgrade is strongly recommended before schema changes that affect data.
 - **No error-reporting / observability.** No Sentry yet.
 - **`@netlify/plugin-nextjs` not explicitly pinned** in `netlify.toml` — relying on auto-detection.
-- **Test-form `test_date` default uses server-local wall clock**, not the tester's. If the Netlify function runs in a different timezone from the tester, today's date can be off by one. Phase 5 should move this to a client component that reads the browser's `new Date()`. Tracked in `src/app/.../tests/new/page.tsx` next to `todayYmdServerLocal`.
+- **Test-form `test_date` default uses server-local wall clock**, not the tester's. Still present — Phase 5 didn't touch it. If the Netlify function runs in a different timezone from the tester, today's date can be off by one. Post-MVP fix: move the default into the client `TestForm` component (read `new Date()` in an effect and `reset({ test_date })`) so the form uses the tester's own wall clock. Tracked in `src/app/.../tests/new/page.tsx` next to `todayYmdServerLocal`.
+- **Mobile QA pass (iPhone + Android) — user-side, pending.** The Phase 5 build didn't ship without a real-device tap-through. Script to run:
+  - **Golden path:** sign in → dashboard → Start a test → serial tab → type 4 chars → tap matching device → pass → Save → certificate page → Generate PDF → Send email. Time it; target is under 2 minutes.
+  - **Keyboard types:** numeric/decimal for PSI fields, ZIP (numeric), phone (tel), email (email). Verify the correct keyboards come up.
+  - **Tap targets:** pass/fail radio cards, retest radios, list rows — all ≥ 44×44.
+  - **Layout:** no horizontal overflow on any page. Sticky header doesn't eat form labels when an input is focused. Toasts don't cover the submit button.
+  - **Draft persistence:** start a test, fill 3 fields, hard-close the tab, reopen, navigate back to the same device's test form — the "Draft restored" pill should appear and the fields should be populated. Try Discard.
+  - **License banner:** temporarily set your `testers.license_expiration` in Supabase to a date 45 days out (warn band) and 15 days out (urgent band) to eyeball copy. Revert.
+  - **Due-date method card:** on `/settings/company`, switch the rule — the amber inline notice should reveal; Save should succeed and `router.refresh` should clear the notice.
+  - **PWA install — iOS Safari:** Share → Add to Home Screen. Launch from the home-screen icon: title "BackFLO", icon renders, standalone chrome, start route `/dashboard`.
+  - **PWA install — Android Chrome:** menu → Install app. Same checks.
+  - **Dark mode:** toggle the OS theme; eyeball dashboard, settings, test form, certificate.
+  - **Pages to touch individually:** customer list + filter, customer detail → location detail → device detail → test form (pass + fail + AVB), certificate Generate/Download/Email, settings Profile + Company, sign-out, add-new-device zero-result chain.
 - **Leftover dev DB test row.** The unit-14 end-to-end submit verification inserted a real row on `MT-DOM-001` with notes "Unit 14 submit verification. Safe to delete." It cascades away on next seed; harmless to leave but tracked here so it doesn't surprise anyone reading dev data.
 - **SVB certificate render not visually verified.** Unit test covers the data-shaping branch, PVB shares the same render branch and is verified, but no SVB device exists in seed to render one end-to-end. Low priority; SVBs are uncommon in the target segment.
 
@@ -425,13 +473,13 @@ Ordered by dependency / priority.
 - [x] Resend integration for transactional email — code complete; awaiting API key provisioning
 - [x] "Email to..." with choice of billing vs. on-site contact email (+ custom free-text)
 
-**Phase 5 — Polish + PWA** (blueprint §7 Phase 5, days 21–24):
-- [ ] Mobile QA on real iPhone + Android
-- [ ] Empty/loading/success states
-- [ ] PWA manifest + service worker (installable)
-- [ ] Local form state persistence
-- [ ] License expiration warnings on dashboard (30/60/90 days)
-- [ ] Due-date calculation method setting prominently in `/settings/company` (already there; just ensure UX)
+**Phase 5 — Polish + PWA** (blueprint §7 Phase 5, days 21–24) — ✅ complete:
+- [ ] Mobile QA on real iPhone + Android — **user-side, pending**; checklist in § Active Issues
+- [x] Empty/loading/success states — five new `loading.tsx` files; existing empty/success states left intact
+- [x] PWA manifest + service worker (installable) — hand-rolled ~90-line SW; manifest + icons served
+- [x] Local form state persistence — test-entry form uses localStorage with 7-day TTL, keyed per device
+- [x] License expiration warnings on dashboard (30 / 60 / 90 days)
+- [x] Due-date calculation method promoted to its own card with switch warning + per-option copy
 
 **Testing backlog (parallel to phases):**
 - [ ] pgTAP or SQL-level tests: RLS enforcement, `create_company_and_first_tester` guards, `update_device_last_tested` math for all 4 due-date methods
