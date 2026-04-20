@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { CompanyForm } from "./company-form";
+import { DueDateMethodCard } from "./due-date-method-card";
 import { LogoUpload } from "./logo-upload";
 import { dueDateMethods, type DueDateMethod } from "@/lib/validation/onboarding";
 import { createLogoPreviewUrl } from "@/lib/storage/logos";
@@ -32,6 +33,7 @@ export default async function CompanySettingsPage() {
 
   return (
     <div className="space-y-6">
+      <DueDateMethodCard companyId={company.id} initial={method} />
       <LogoUpload
         companyId={company.id}
         initialLogoUrl={company.logo_url}
@@ -48,7 +50,6 @@ export default async function CompanySettingsPage() {
           zip: company.zip ?? "",
           phone: company.phone ?? "",
           website: company.website ?? "",
-          next_due_calculation_method: method,
         }}
       />
     </div>

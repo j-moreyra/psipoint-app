@@ -17,7 +17,6 @@ const validCompany: CompanyInput = {
   zip: "",
   phone: "",
   website: "",
-  next_due_calculation_method: "test_date_plus_year",
 };
 
 const validProfile: ProfileInput = {
@@ -65,7 +64,11 @@ describe("toCompanyUpdate", () => {
   it("keeps required fields as-is", () => {
     const u = toCompanyUpdate(validCompany);
     expect(u.name).toBe("Acme");
-    expect(u.next_due_calculation_method).toBe("test_date_plus_year");
+  });
+
+  it("omits next_due_calculation_method — owned by its own card", () => {
+    const u = toCompanyUpdate(validCompany);
+    expect("next_due_calculation_method" in u).toBe(false);
   });
 });
 

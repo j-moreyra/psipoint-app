@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { dueDateMethods } from "@/lib/validation/onboarding";
 import {
   normalizePhoneUs,
   nullIfEmpty,
@@ -13,6 +12,10 @@ import {
 // ---------------------------------------------------------------------------
 // Company settings
 // ---------------------------------------------------------------------------
+// Phase 5 split: `next_due_calculation_method` moved to its own card in
+// /settings/company (see DueDateMethodCard) so the due-date rule is
+// discoverable and can carry an explanatory warning on change. The two
+// forms target different columns and save independently.
 export const companySchema = z.object({
   name: requiredText("Company name is required"),
   address_line_1: optionalText,
@@ -22,7 +25,6 @@ export const companySchema = z.object({
   zip: optionalText,
   phone: optionalText,
   website: optionalText,
-  next_due_calculation_method: z.enum(dueDateMethods),
 });
 
 export type CompanyInput = z.infer<typeof companySchema>;
@@ -37,7 +39,6 @@ export function toCompanyUpdate(v: CompanyInput) {
     zip: nullIfEmpty(v.zip),
     phone: nullIfEmpty(normalizePhoneUs(v.phone)),
     website: nullIfEmpty(v.website),
-    next_due_calculation_method: v.next_due_calculation_method,
   };
 }
 

@@ -15,10 +15,6 @@ import {
   toCompanyUpdate,
   type CompanyInput,
 } from "@/lib/validation/settings";
-import {
-  dueDateMethods,
-  dueDateMethodLabels,
-} from "@/lib/validation/onboarding";
 
 export function CompanyForm({
   companyId,
@@ -159,24 +155,6 @@ export function CompanyForm({
           />
         </Field>
       </div>
-
-      <Field
-        id="next_due_calculation_method"
-        label="Next-test-due rule"
-        error={errors.next_due_calculation_method?.message}
-      >
-        <select
-          id="next_due_calculation_method"
-          className="flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-          {...register("next_due_calculation_method")}
-        >
-          {dueDateMethods.map((m) => (
-            <option key={m} value={m}>
-              {dueDateMethodLabels[m]}
-            </option>
-          ))}
-        </select>
-      </Field>
 
       <div className="flex justify-end pt-2">
         <Button type="submit" disabled={!isDirty || submitting}>
