@@ -22,6 +22,8 @@ import {
   DUE_SOON_WINDOW_DAYS,
   bucketByDueStatus,
 } from "@/lib/dates/due-status";
+import { licenseWarning } from "@/lib/dates/license-warning";
+import { LicenseBanner } from "@/components/app/license-banner";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -41,7 +43,7 @@ export default async function DashboardPage() {
   const [testerRes, devices, recent] = await Promise.all([
     supabase
       .from("testers")
-      .select("first_name, companies(name)")
+      .select("first_name, license_expiration, companies(name)")
       .eq("id", user!.id)
       .maybeSingle(),
     listActiveDevicesForDashboard(supabase),
@@ -53,6 +55,7 @@ export default async function DashboardPage() {
     (tester?.companies as { name: string } | null)?.name ?? "your company";
 
   const buckets = bucketByDueStatus(devices);
+  const license = licenseWarning(tester?.license_expiration ?? null);
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-4 sm:p-6">
@@ -64,6 +67,8 @@ export default async function DashboardPage() {
           Running {companyName} on BackFLO.
         </p>
       </div>
+
+      <LicenseBanner warning={license} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Button nativeButton={false} render={<Link href="/tests/new" />}>
