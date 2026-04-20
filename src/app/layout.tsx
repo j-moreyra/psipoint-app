@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,12 +20,27 @@ export const metadata: Metadata = {
     template: "%s · BackFLO",
   },
   description: "Backflow prevention testing, built for solo operators.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "BackFLO",
+  appleWebApp: {
+    capable: true,
+    title: "BackFLO",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: "#0284C7",
 };
 
 export default function RootLayout({
@@ -40,6 +56,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <Toaster richColors closeButton position="top-center" />
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
