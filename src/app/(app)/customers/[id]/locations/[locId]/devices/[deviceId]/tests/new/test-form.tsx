@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, type UseFormRegister } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, RotateCcwIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import {
 } from "@/lib/dates/gauge-notice";
 import { createClient } from "@/lib/supabase/client";
 import { dbErrorMessage } from "@/lib/db/errors";
+import { testDraftKey } from "@/lib/forms/draft-keys";
+import { useFormDraft } from "@/lib/forms/use-form-draft";
 import {
   testResultFormDefaults,
   testResultSchema,
@@ -62,21 +64,36 @@ export function TestForm(props: TestFormProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
-  const defaultValues = testResultFormDefaults(
-    props.deviceType,
-    props.smartDefaults,
+  const defaultValues = useMemo(
+    () => testResultFormDefaults(props.deviceType, props.smartDefaults),
+    [props.deviceType, props.smartDefaults],
   );
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<TestResultInput>({
+  const form = useForm<TestResultInput>({
     resolver: zodResolver(testResultSchema),
     defaultValues,
     mode: "onTouched",
   });
+  const {
+    register,
+    handleSubmit,
+    watch,
+    reset,
+    formState: { errors },
+  } = form;
+
+  // Persist form values to localStorage so a tab kill, phone sleep, or
+  // connection blip doesn't cost a half-filled test. Keyed by device
+  // id — one draft per device, TTL 7 days. On mount, if a fresh draft
+  // exists, it overrides the server-side smart defaults. `clear()` runs
+  // on successful save and on explicit discard.
+  const draftKey = testDraftKey(props.deviceId);
+  const draft = useFormDraft({ key: draftKey, form });
+
+  function onDiscardDraft() {
+    draft.clear();
+    reset(defaultValues);
+  }
 
   // Watch the gauge fields so the Q11 soft notices re-render live
   // while the tester types. `watch` here is scoped — doesn't force
@@ -129,6 +146,7 @@ export function TestForm(props: TestFormProps) {
       return;
     }
 
+    draft.clear();
     toast.success("Test saved.");
     // Land the tester on the new test's certificate page — generating
     // and emailing the cert is the natural next action. They can
@@ -152,6 +170,25 @@ export function TestForm(props: TestFormProps) {
           value={props.deviceType}
           {...register("device_type")}
         />
+
+        {draft.restored ? (
+          <div
+            role="status"
+            className="-mt-1 flex items-start gap-2 rounded-md border border-blue-300/60 bg-blue-50 px-3 py-2 text-xs text-blue-900 dark:border-blue-700/40 dark:bg-blue-950/40 dark:text-blue-100"
+          >
+            <RotateCcwIcon className="mt-0.5 size-3.5 shrink-0" />
+            <span className="flex-1">
+              Draft restored from a previous session on this device.
+            </span>
+            <button
+              type="button"
+              onClick={onDiscardDraft}
+              className="font-medium underline underline-offset-2 hover:no-underline"
+            >
+              Discard
+            </button>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field
