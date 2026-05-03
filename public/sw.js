@@ -1,4 +1,4 @@
-// BackFLO service worker — app-shell caching only. Intentionally
+// Psipoint service worker — app-shell caching only. Intentionally
 // minimal: MVP installability per blueprint §7 Phase 5, not offline
 // sync (v2+). Data reads + writes bypass the SW entirely; only static
 // assets are cached so the PWA wrapper feels snappy.
@@ -6,8 +6,8 @@
 // Cache bust: bump SW_VERSION. On activate, anything not matching the
 // current version is dropped. No Workbox — ~40 lines is enough.
 
-const SW_VERSION = "backflo-v1";
-const CACHE_NAME = `backflo-shell-${SW_VERSION}`;
+const SW_VERSION = "psipoint-v1";
+const CACHE_NAME = `psipoint-shell-${SW_VERSION}`;
 
 // Bypass the SW entirely for these path prefixes. Auth callbacks,
 // Supabase /auth/* calls, and any future API must always hit the
