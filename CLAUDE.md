@@ -1,8 +1,10 @@
 @AGENTS.md
 
-# BackFLO — working-with-the-code notes
+# Psipoint — working-with-the-code notes
 
-Source of truth for the product spec: `BackFLO_MVP_Blueprint.md`.
+Source of truth for the product spec: `Psipoint_MVP_Blueprint.md`
+(formerly `BackFLO_MVP_Blueprint.md` before the May 2026 rebrand —
+historical Phase 1–5 narrative refers to "BackFLO").
 This file is conventions only.
 
 ## Stack snapshot

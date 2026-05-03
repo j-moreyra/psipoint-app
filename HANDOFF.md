@@ -1,11 +1,16 @@
-# HANDOFF.md — BackFLO
+# HANDOFF.md — Psipoint
 
-> Last updated: 2026-05-03. Phase 5 complete; mobile QA closed; draft-persistence patches landed.
-> Next update: after first paying customer milestone (Resend provisioning, prod Netlify site, Sentry).
+> Last updated: 2026-05-03. Phase 5 complete; mobile QA closed;
+> draft-persistence patches landed; **rebranded BackFLO → Psipoint
+> (May 2026)**. Historical Phase 1–5 narrative below still says
+> "BackFLO" — those events literally happened under that name; the
+> codebase, brand, manifest, and PWA icon are now Psipoint.
+> Next update: after first paying customer milestone (Resend
+> provisioning, prod Netlify site, Sentry).
 
 ## 1. Project Overview
 
-**BackFLO** is a SaaS for backflow-prevention testers (solo operators and small 1–5-tech shops). Positioned as "the modern alternative to Syncta" at $39/mo flat. Target ARR: 50 customers × $39 ≈ $23K by month 6.
+**Psipoint** (rebranded from BackFLO in May 2026 after USPTO clearance — see Key Decisions § Rebrand) is a SaaS for backflow-prevention testers (solo operators and small 1–5-tech shops). Positioned as "the modern alternative to Syncta" at $39/mo flat. Target ARR: 50 customers × $39 ≈ $23K by month 6.
 
 **Core loop:** Arrive → find device → test → PDF certificate → email → next job. Sub-2-minute test recording on a phone is the UX target.
 
@@ -131,7 +136,7 @@
 ### Data model (4-level hierarchy)
 
 ```
-Company (BackFLO tenant — the testing business)
+Company (Psipoint tenant — the testing business)
   └── Testers (employees — the app users)
 
 Customer (billing entity, e.g. "Acme Property Management")
@@ -369,6 +374,15 @@ Additional Phase 3 calls:
 - **No `createTestResult` helper in `src/lib/db/test-results.ts`.** Matches the Phase-2 device-form pattern — writes live inline in the form component; the helper layer is reads only. Revisit if a second write site shows up.
 - **Dashboard pulls every active device client-side, buckets in JS.** Simpler than a bucket-per-SQL-query and fine for MVP scale (<500 devices per company). Phase 5 adds pagination if a shop crosses that threshold.
 
+### Rebrand: BackFLO → Psipoint (May 2026)
+
+- **Why**: BackFLO USPTO clearance surfaced **Park Environmental Equipment, LLC** (Northwest Pipe / NWPX subsidiary) as the holder of two LIVE BACKFLO marks in Class 9 (Reg #5000331 on Supplemental + a 2026 Principal-Register pending application), both for control valves used in backflow prevention. Identical mark text + same industry vertical = high-likelihood §2(d) confusion refusal even if our goods (software) differ from theirs (hardware). The mark is also descriptive of "backflow", which would itself draw §2(e)(1) refusal pushing us to Supplemental — same hole Park sat in for 10 years before refiling.
+- **Pivots considered + rejected**: Pressr (PRESSR. registered Principal-Register Class 9 software, near-fatal), various coined alternatives without enough product fit.
+- **Pick**: Psipoint. USPTO is empty for the exact mark + "psypoint" + "sipoint" (only DEAD/ABANDONED). Common-law clean (only meaningful collision is **psipoint.org** = PSI Philippines, a Makati-based leadership-training company in a different industry and country with no US filings). Domains available: psipoint.app (chosen), psipoint.io, psipoint.co, getpsipoint.com. psipoint.com taken since 2011 by a domain investor — left alone.
+- **What changed in the codebase**: brand-visible strings only (root metadata, app shell, auth shell, login/onboarding copy, dashboard tagline, settings copy, manifest name, PWA Ψ-monogram icon, SW cache key, localStorage draft key prefix `backflo:` → `psipoint:`, Nominatim UA, test fixtures, blueprint rename). Six small forward-only commits. Engineering term **"backflow"** stays everywhere it appears (cert filenames, email body, blueprint references) — that's the device class name, not our brand.
+- **What didn't change**: Supabase project name (`backflo-dev`), Netlify site name (`backflo-app`), GitHub repo name (`j-moreyra/backflo-app`), local directory `~/backflo-app`. All external resources keep their old names until the user does the dashboard renames; deferred to avoid coordinated cutovers mid-rebrand. URL `backflo-app.netlify.app` still works.
+- **Trademark filing**: not yet filed. Recommended path is to consult a trademark attorney before filing, even with clean USPTO + common-law results. Not blocking shipping — can use the Psipoint mark in commerce now (Section 1(a) basis when filing) and the application date is what locks priority.
+
 ### Patterns adopted
 - **Validation:** shared Zod primitives in `src/lib/validation/fields.ts` (`requiredText`, `optionalText`, `optionalStateCode`, `requiredDate`, `optionalDate`, `nullIfEmpty`, `undefinedIfEmpty`). All schemas compose from these. Zod schemas operate on raw strings; normalization happens at submit via `to*Args`/`to*Update` helpers.
 - **Forms:** shadcn Input/Label + shared `src/components/app/field.tsx` (label + error/hint), wrapped in `<fieldset disabled={submitting} className="block space-y-4 border-0 p-0 m-0 min-w-0">` to lock inputs during submit.
@@ -438,7 +452,7 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 
 **Open items / risks (non-blocking):**
 - **Pick a domain** — backflo.app / backflo.com / getbackflo.com / backflo.io still unchecked.
-- **USPTO trademark search for "BackFLO"** — pending.
+- **USPTO trademark search for "BackFLO"** — done; conflict found (Park Environmental Equipment owns BACKFLO Class 9 mark). Triggered the rebrand to **Psipoint**, which cleared USPTO + common-law searches on 2026-05-03. See Key Decisions § Rebrand.
 - **Production Netlify site not yet connected** — deploy preview only.
 - **Resend API key not yet provisioned** — `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in `.env.local.example` are blank stubs. PDF generation works without them; email sending requires both to be set + a verified Resend sender. Needed before first paying customer.
 - **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, FIELD_LIMITS drift, due-status buckets, gauge-notice helpers, certificate data shaping, storage path builders, email recipient/payload builders (462 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch, `@react-pdf/renderer` rendering output, Resend SDK.
@@ -455,7 +469,7 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
   - **Draft persistence:** start a test, fill 3 fields, hard-close the tab, reopen, navigate back to the same device's test form — the "Draft restored" pill should appear and the fields should be populated. Try Discard.
   - **License banner:** temporarily set your `testers.license_expiration` in Supabase to a date 45 days out (warn band) and 15 days out (urgent band) to eyeball copy. Revert.
   - **Due-date method card:** on `/settings/company`, switch the rule — the amber inline notice should reveal; Save should succeed and `router.refresh` should clear the notice.
-  - **PWA install — iOS Safari:** Share → Add to Home Screen. Launch from the home-screen icon: title "BackFLO", icon renders, standalone chrome, start route `/dashboard`.
+  - **PWA install — iOS Safari:** Share → Add to Home Screen. Launch from the home-screen icon: title "Psipoint", Ψ icon renders, standalone chrome, start route `/dashboard`.
   - **PWA install — Android Chrome:** menu → Install app. Same checks.
   - **Dark mode:** toggle the OS theme; eyeball dashboard, settings, test form, certificate.
   - **Pages to touch individually:** customer list + filter, customer detail → location detail → device detail → test form (pass + fail + AVB), certificate Generate/Download/Email, settings Profile + Company, sign-out, add-new-device zero-result chain.
