@@ -13,6 +13,7 @@ const SEND_STAGES = [
   "download",
   "email",
   "db",
+  "not_configured",
 ] as const;
 
 describe("generateErrorCopy", () => {
@@ -74,6 +75,13 @@ describe("sendErrorCopy", () => {
 
   it("db copy acknowledges the email went out even though recording failed", () => {
     expect(sendErrorCopy("db")).toMatch(/sent/i);
+  });
+
+  it("not_configured copy explains the env isn't set up — distinct from bad_email", () => {
+    const msg = sendErrorCopy("not_configured");
+    expect(msg).toMatch(/set up|configured/i);
+    expect(msg).not.toBe(sendErrorCopy("bad_email"));
+    expect(msg).not.toBe(sendErrorCopy("email"));
   });
 
   it("never returns a generic 'something went wrong'", () => {

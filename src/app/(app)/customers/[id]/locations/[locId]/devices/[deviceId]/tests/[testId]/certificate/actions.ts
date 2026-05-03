@@ -28,7 +28,17 @@ export type GenerateResult =
 
 export type SendResult =
   | { ok: true }
-  | { ok: false; stage: "fetch" | "not_ready" | "bad_email" | "download" | "email" | "db" };
+  | {
+      ok: false;
+      stage:
+        | "fetch"
+        | "not_ready"
+        | "bad_email"
+        | "download"
+        | "email"
+        | "db"
+        | "not_configured";
+    };
 
 // -----------------------------------------------------------------------------
 // generateCertificate
@@ -127,6 +137,14 @@ export async function sendCertificate(
 ): Promise<SendResult> {
   if (!isValidRecipientEmail(recipientEmail)) {
     return { ok: false, stage: "bad_email" };
+  }
+
+  // Catch the missing-env case up front so the tester sees an
+  // actionable "not configured" toast instead of a misleading
+  // "check the address" one. The Resend client throws on missing
+  // env at first send; pre-checking keeps the failure mode crisp.
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+    return { ok: false, stage: "not_configured" };
   }
 
   const supabase = await createClient();

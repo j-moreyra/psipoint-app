@@ -19,7 +19,14 @@ export function generateErrorCopy(
 }
 
 export function sendErrorCopy(
-  stage: "fetch" | "not_ready" | "bad_email" | "download" | "email" | "db",
+  stage:
+    | "fetch"
+    | "not_ready"
+    | "bad_email"
+    | "download"
+    | "email"
+    | "db"
+    | "not_configured",
 ): string {
   switch (stage) {
     case "fetch":
@@ -34,5 +41,7 @@ export function sendErrorCopy(
       return "Couldn't send the email. Check the address and try again.";
     case "db":
       return "Sent, but couldn't record it. Try again.";
+    case "not_configured":
+      return "Email sending isn't set up yet. Contact support.";
   }
 }
