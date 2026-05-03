@@ -84,6 +84,19 @@ export function useFormDraft<TValues extends FieldValues>({
   const hydratedRef = useRef(false);
   const restoredRef = useRef(false);
   const lastWriteRef = useRef<number>(0);
+  // After clear(), the caller typically calls reset(defaultValues) —
+  // which fires the watch subscription and would otherwise schedule
+  // a write that immediately re-creates the draft with empty values.
+  // This timestamp gates writes for one debounce window after a clear
+  // so the post-discard "no draft" state actually sticks.
+  const ignoreWritesUntilRef = useRef<number>(0);
+  // Serialized snapshot of "values that match the current persistent
+  // baseline" — either the server-rendered defaults (fresh form) or
+  // the just-restored draft. We only persist when the form differs
+  // from this. Without it, the pagehide flush would write empty
+  // defaults from an untouched form, and that empty draft would
+  // resurrect the "Draft restored" pill on the next mount.
+  const baselineRef = useRef<string>("");
 
   // 1) Hydrate. Runs exactly once per key. Reads the blob, checks TTL,
   // and calls reset() if the payload looks sane.
@@ -96,6 +109,11 @@ export function useFormDraft<TValues extends FieldValues>({
     restoredRef.current = false;
     const raw = safeGet(key);
     if (!raw) {
+      // Fresh form with no draft. Baseline still has to be set so a
+      // pagehide flush from this untouched form doesn't write the
+      // server defaults as a "draft" (which would resurrect the pill
+      // on next mount).
+      baselineRef.current = JSON.stringify(form.getValues());
       setReady(true);
       hydratedRef.current = true;
       return;
@@ -117,6 +135,11 @@ export function useFormDraft<TValues extends FieldValues>({
       // Corrupt blob — nuke it so the next write starts clean.
       safeRemove(key);
     }
+    // Snapshot the post-hydrate form state as the baseline so the
+    // first watch fire (often a synchronous one from the reset()
+    // above) doesn't re-persist the same data, and pagehide on a
+    // never-typed form is a no-op.
+    baselineRef.current = JSON.stringify(form.getValues());
     setReady(true);
     hydratedRef.current = true;
     // key drives the hydration identity; intentionally leave `form` out
@@ -136,25 +159,39 @@ export function useFormDraft<TValues extends FieldValues>({
         savedAt: Date.now(),
         values,
       };
-      safeSet(key, JSON.stringify(payload));
+      const json = JSON.stringify(payload);
+      safeSet(key, json);
       lastWriteRef.current = payload.savedAt;
+      baselineRef.current = JSON.stringify(values);
     }
 
     const sub = form.watch((values) => {
       if (!hydratedRef.current) return;
+      const valuesJson = JSON.stringify(values);
+      if (Date.now() < ignoreWritesUntilRef.current) {
+        // During the post-clear window: don't write, but track the
+        // form's evolving state so the post-window baseline lines up
+        // with whatever the caller has reset() it to.
+        baselineRef.current = valuesJson;
+        return;
+      }
+      if (valuesJson === baselineRef.current) return; // Nothing changed
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => flush(values as TValues), WRITE_DEBOUNCE_MS);
     });
 
     function flushNow() {
       if (!hydratedRef.current) return;
+      if (Date.now() < ignoreWritesUntilRef.current) return;
+      const values = form.getValues() as TValues;
+      if (JSON.stringify(values) === baselineRef.current) return;
       if (timer) {
         clearTimeout(timer);
         timer = null;
       }
       // Pull the freshest values straight out of the form rather than
       // trusting a possibly-stale closure capture.
-      flush(form.getValues() as TValues);
+      flush(values);
     }
 
     function onVisibilityChange() {
@@ -214,6 +251,11 @@ export function useFormDraft<TValues extends FieldValues>({
     safeRemove(key);
     setRestored(false);
     restoredRef.current = false;
+    // The caller will typically follow this with reset(defaultValues),
+    // which fires watch and would otherwise re-create the draft with
+    // empty values inside the next debounce tick. Suppress writes for
+    // one debounce window + a small safety margin.
+    ignoreWritesUntilRef.current = Date.now() + WRITE_DEBOUNCE_MS + 100;
   }
 
   return { ready, restored, clear };
