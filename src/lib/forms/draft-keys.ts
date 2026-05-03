@@ -3,7 +3,7 @@
 // localStorage or Date.now() through a hook.
 //
 // Storage layout (one entry per device):
-//   key   = backflo:draft:test:v<schema>:<deviceId>
+//   key   = psipoint:draft:test:v<schema>:<deviceId>
 //   value = { savedAt: <unix-ms>, values: <form-snapshot> }
 //
 // Versioning: bump DRAFT_SCHEMA_VERSION any time the test-form field
@@ -29,7 +29,7 @@ export type StoredDraft<T> = {
 // two different devices can't collide.
 export function testDraftKey(deviceId: string): string {
   if (!deviceId) throw new Error("testDraftKey: deviceId is required");
-  return `backflo:draft:test:v${DRAFT_SCHEMA_VERSION}:${deviceId}`;
+  return `psipoint:draft:test:v${DRAFT_SCHEMA_VERSION}:${deviceId}`;
 }
 
 // Splits "is this draft too old to use" from the hook so the stale

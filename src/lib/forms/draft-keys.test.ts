@@ -9,7 +9,7 @@ import {
 describe("testDraftKey", () => {
   it("builds a deterministic key from a device id", () => {
     expect(testDraftKey("abc-123")).toBe(
-      `backflo:draft:test:v${DRAFT_SCHEMA_VERSION}:abc-123`,
+      `psipoint:draft:test:v${DRAFT_SCHEMA_VERSION}:abc-123`,
     );
   });
 
