@@ -24,7 +24,7 @@ export interface GeocodeResult {
 // informational only — Nominatim admins use it to reach operators if a
 // client misbehaves.
 export const NOMINATIM_USER_AGENT =
-  "BackFLO/0.1 (+https://backflo-app.netlify.app)";
+  "Psipoint/0.1 (+https://backflo-app.netlify.app)";
 
 export const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 
