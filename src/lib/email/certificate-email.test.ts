@@ -34,9 +34,9 @@ function stubData(overrides?: Partial<StubCert>): CertificateData {
       licenseNumber: "FL-1234",
     },
     company: {
-      name: "BackFLO Testing Co",
+      name: "Psipoint Testing Co",
       phone: "305-555-0101",
-      website: "https://backflo.app",
+      website: "https://psipoint.app",
     },
     ...overrides,
   };

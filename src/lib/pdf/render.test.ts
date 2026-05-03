@@ -95,7 +95,7 @@ function stubCertData(): MinimalCertData {
     },
     company: {
       id: "co",
-      name: "BackFLO",
+      name: "Psipoint",
       address: {
         line1: null,
         line2: null,

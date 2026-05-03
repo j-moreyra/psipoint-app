@@ -332,7 +332,7 @@ function certRow(overrides?: Record<string, unknown>) {
     },
     company: {
       id: "co",
-      name: "BackFLO",
+      name: "Psipoint",
       address_line_1: null,
       address_line_2: null,
       city: null,
@@ -403,7 +403,7 @@ describe("getCertificateContext", () => {
     expect(r.serviceLocation.address_line_1).toBe("1 Main");
     expect(r.customer.company_name).toBe("Acme");
     expect(r.tester.license_number).toBe("FL-1");
-    expect(r.company.name).toBe("BackFLO");
+    expect(r.company.name).toBe("Psipoint");
 
     // The three extra UI-only fields pulled out onto the top level.
     expect(r.pdfUrl).toBe(

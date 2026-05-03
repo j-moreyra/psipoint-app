@@ -73,7 +73,7 @@ const SEND_ARGS = {
 describe("sendCertificateEmail — missing env", () => {
   it("throws when RESEND_API_KEY is unset (before constructing Resend)", async () => {
     delete process.env.RESEND_API_KEY;
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     const { sendCertificateEmail } = await loadClient();
     await expect(sendCertificateEmail(SEND_ARGS)).rejects.toThrow(
       /RESEND_API_KEY is not set/,
@@ -83,7 +83,7 @@ describe("sendCertificateEmail — missing env", () => {
 
   it("throws when RESEND_API_KEY is an empty string (truthy-gated)", async () => {
     process.env.RESEND_API_KEY = "";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     const { sendCertificateEmail } = await loadClient();
     await expect(sendCertificateEmail(SEND_ARGS)).rejects.toThrow(
       /RESEND_API_KEY is not set/,
@@ -103,7 +103,7 @@ describe("sendCertificateEmail — missing env", () => {
 describe("sendCertificateEmail — happy path", () => {
   it("lazy-constructs the Resend client with the env key on first send", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     const { sendCertificateEmail } = await loadClient();
     await sendCertificateEmail(SEND_ARGS);
     expect(constructorSpy).toHaveBeenCalledTimes(1);
@@ -112,7 +112,7 @@ describe("sendCertificateEmail — happy path", () => {
 
   it("forwards from/to/subject/html/text/attachments to resend.emails.send", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     const { sendCertificateEmail } = await loadClient();
     await sendCertificateEmail(SEND_ARGS);
     expect(sendSpy).toHaveBeenCalledTimes(1);
@@ -124,7 +124,7 @@ describe("sendCertificateEmail — happy path", () => {
       text: string;
       attachments: Array<{ filename: string; content: Buffer }>;
     };
-    expect(payload.from).toBe("certs@backflo.app");
+    expect(payload.from).toBe("certs@psipoint.app");
     expect(payload.to).toBe("jane@example.com");
     expect(payload.subject).toBe("Backflow test passed");
     expect(payload.html).toBe("<p>hi</p>");
@@ -138,7 +138,7 @@ describe("sendCertificateEmail — happy path", () => {
 
   it("returns the id from a successful send", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     sendSpy.mockResolvedValueOnce({ data: { id: "msg_abc" }, error: null });
     const { sendCertificateEmail } = await loadClient();
     await expect(sendCertificateEmail(SEND_ARGS)).resolves.toEqual({
@@ -148,7 +148,7 @@ describe("sendCertificateEmail — happy path", () => {
 
   it("returns id: null when Resend omits an id on the success response", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     sendSpy.mockResolvedValueOnce({ data: null, error: null });
     const { sendCertificateEmail } = await loadClient();
     await expect(sendCertificateEmail(SEND_ARGS)).resolves.toEqual({
@@ -160,7 +160,7 @@ describe("sendCertificateEmail — happy path", () => {
 describe("sendCertificateEmail — error mapping", () => {
   it("throws when Resend returns an error (caller maps to emailErrorMessage)", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     sendSpy.mockResolvedValueOnce({
       data: null,
       error: { name: "validation_error", message: "domain not verified" },
@@ -173,7 +173,7 @@ describe("sendCertificateEmail — error mapping", () => {
 describe("sendCertificateEmail — caching", () => {
   it("reuses the same Resend client across multiple sends within a module load", async () => {
     process.env.RESEND_API_KEY = "re_test_key";
-    process.env.RESEND_FROM_EMAIL = "certs@backflo.app";
+    process.env.RESEND_FROM_EMAIL = "certs@psipoint.app";
     const { sendCertificateEmail } = await loadClient();
     await sendCertificateEmail(SEND_ARGS);
     await sendCertificateEmail(SEND_ARGS);
