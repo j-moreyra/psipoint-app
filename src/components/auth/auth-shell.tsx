@@ -16,7 +16,7 @@ export function AuthShell({
       <div className="w-full max-w-sm space-y-6">
         <div className="flex flex-col items-center gap-1 text-center">
           <span className="font-mono text-2xl font-bold tracking-tight">
-            BackFLO
+            Psipoint
           </span>
           <span className="text-xs uppercase tracking-widest text-muted-foreground">
             Backflow testing

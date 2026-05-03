@@ -68,7 +68,7 @@ export function OnboardingForm() {
       return;
     }
 
-    toast.success("You're all set. Welcome to BackFLO.");
+    toast.success("You're all set. Welcome to Psipoint.");
     router.replace("/dashboard");
     router.refresh();
   }
@@ -78,7 +78,7 @@ export function OnboardingForm() {
       <div className="mx-auto w-full max-w-2xl px-4">
         <div className="mb-6 flex flex-col items-center gap-1 text-center">
           <span className="font-mono text-2xl font-bold tracking-tight">
-            BackFLO
+            Psipoint
           </span>
           <span className="text-xs uppercase tracking-widest text-muted-foreground">
             Let&apos;s set up your account

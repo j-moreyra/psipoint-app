@@ -71,7 +71,7 @@ export function DueDateMethodCard({
             Next-test-due rule
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            How BackFLO calculates each device&rsquo;s next test date after a
+            How Psipoint calculates each device&rsquo;s next test date after a
             new test is recorded. You can override any single device
             individually from its detail page.
           </p>

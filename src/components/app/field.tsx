@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 
-// Shared form-field wrapper: label + content + (error | hint). All BackFLO
+// Shared form-field wrapper: label + content + (error | hint). All Psipoint
 // forms compose fields with this so error-vs-hint behavior and spacing
 // stay consistent.
 export function Field({

@@ -16,15 +16,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "BackFLO",
-    template: "%s · BackFLO",
+    default: "Psipoint",
+    template: "%s · Psipoint",
   },
   description: "Backflow prevention testing, built for solo operators.",
   manifest: "/manifest.webmanifest",
-  applicationName: "BackFLO",
+  applicationName: "Psipoint",
   appleWebApp: {
     capable: true,
-    title: "BackFLO",
+    title: "Psipoint",
     statusBarStyle: "default",
   },
   icons: {

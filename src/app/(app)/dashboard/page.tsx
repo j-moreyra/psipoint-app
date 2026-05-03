@@ -64,7 +64,7 @@ export default async function DashboardPage() {
           Welcome back, {tester?.first_name ?? "there"}.
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Running {companyName} on BackFLO.
+          Running {companyName} on Psipoint.
         </p>
       </div>
 

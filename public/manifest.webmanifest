@@ -1,6 +1,6 @@
 {
-  "name": "BackFLO",
-  "short_name": "BackFLO",
+  "name": "Psipoint",
+  "short_name": "Psipoint",
   "description": "Backflow prevention testing, built for solo operators.",
   "start_url": "/dashboard",
   "scope": "/",

@@ -39,7 +39,7 @@ export function AppShell({
             href="/dashboard"
             className="font-mono text-lg font-bold tracking-tight"
           >
-            BackFLO
+            Psipoint
           </Link>
           <nav className="hidden items-center gap-4 text-sm sm:flex">
             <Link

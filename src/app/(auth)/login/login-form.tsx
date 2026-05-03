@@ -43,7 +43,7 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <AuthShell
       title="Welcome back"
-      description="Sign in to your BackFLO account"
+      description="Sign in to your Psipoint account"
       footer={
         <>
           Don&apos;t have an account?{" "}
