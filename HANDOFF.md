@@ -1,6 +1,6 @@
 # HANDOFF.md — BackFLO
 
-> Last updated: 2026-04-19. Phase 5 complete.
+> Last updated: 2026-05-03. Phase 5 complete; mobile QA closed; draft-persistence patches landed.
 > Next update: after first paying customer milestone (Resend provisioning, prod Netlify site, Sentry).
 
 ## 1. Project Overview
@@ -45,7 +45,7 @@
 
 - **GitHub:** https://github.com/j-moreyra/backflo-app (public)
 - **Active branch:** `main`
-- **Latest commit:** `73bf9d2 feat(pwa): manifest, icons, hand-rolled service worker`
+- **Latest commit:** `8bf28a6 fix(forms): draft persistence — baseline check + post-discard write suppression`
 - Deployed to Netlify deploy preview. Production Netlify site not yet connected.
 
 **Phase 3 delivery (15 commits, not yet squashed to a PR):**
@@ -82,11 +82,12 @@
 **Phase 5 stats:**
 - 26 routes live (no new routes)
 - 6 migrations (no new migrations — Phase 5 is all app code)
-- 571 Vitest tests passing (was 550 after the post-Phase-4 coverage sweep; +21 new Phase 5 tests: license-warning thresholds, draft-key builder + TTL)
+- 571 Vitest tests passing (was 550 after the post-Phase-4 coverage sweep; +21 new Phase 5 tests: license-warning thresholds, draft-key builder + TTL). Two follow-up patch commits to the draft-persistence hook didn't add tests — the bugs lived in the localStorage / RHF watch boundary that Phase 5 deliberately mocks-at-edge.
 - New deps: none in `dependencies`. `sharp` is used by the icon build script but ships as a transitive dep via next 16; no explicit install needed.
 - New public assets: `public/icon.svg`, `public/icon-{192,512}.png`, `public/icon-maskable-{192,512}.png`, `public/apple-touch-icon.png`, `public/manifest.webmanifest`, `public/sw.js`
 - `tsc --noEmit` + `npm run build` green
 - **Preview-verified:** manifest + icons + metadata wired correctly; service worker correctly skipped in dev; no console errors on login page after root-layout metadata changes.
+- **Mobile QA pass closed (2026-05-03):** desktop preview cycle confirmed write/restore/discard/no-resurrect behavior end-to-end; iPhone Chrome confirmed the mobile golden path.
 
 **Dev DB state:**
 - Seeded via `scripts/seed.ts` on 2026-04-18 (5 customers / 15 service locations / 23 devices)
@@ -446,7 +447,7 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 - **No error-reporting / observability.** No Sentry yet.
 - **`@netlify/plugin-nextjs` not explicitly pinned** in `netlify.toml` — relying on auto-detection.
 - **Test-form `test_date` default uses server-local wall clock**, not the tester's. Still present — Phase 5 didn't touch it. If the Netlify function runs in a different timezone from the tester, today's date can be off by one. Post-MVP fix: move the default into the client `TestForm` component (read `new Date()` in an effect and `reset({ test_date })`) so the form uses the tester's own wall clock. Tracked in `src/app/.../tests/new/page.tsx` next to `todayYmdServerLocal`.
-- **Mobile QA pass (iPhone + Android) — user-side, pending.** The Phase 5 build didn't ship without a real-device tap-through. Script to run:
+- **Mobile QA pass — DONE 2026-05-03 (iPhone Chrome).** Surfaced two draft-persistence bugs that are now patched (see Phase 5 lessons). Android Chrome pass still pending but lower-priority — iOS is the harder target. Script preserved below for the Android run when it happens:
   - **Golden path:** sign in → dashboard → Start a test → serial tab → type 4 chars → tap matching device → pass → Save → certificate page → Generate PDF → Send email. Time it; target is under 2 minutes.
   - **Keyboard types:** numeric/decimal for PSI fields, ZIP (numeric), phone (tel), email (email). Verify the correct keyboards come up.
   - **Tap targets:** pass/fail radio cards, retest radios, list rows — all ≥ 44×44.
@@ -549,6 +550,10 @@ Ordered by dependency / priority.
 - **Splitting `companySchema` is safer than two forms targeting the same schema.** Keeping `next_due_calculation_method` in `companySchema` and having two forms (company-details + due-date-card) both `zodResolver(companySchema)` would have meant each form carried validation state for fields it doesn't render. Drop the field from the schema and let the new card call `.update({ next_due_calculation_method })` directly — cleaner separation, simpler type story.
 - **Preview verify works fine against a non-authed landing.** For the PWA wiring I didn't need to be signed in — fetching `/manifest.webmanifest`, `/icon-192.png`, and checking `<head>` metadata were all doable from the login page. Reserve authenticated preview for UI surface changes; don't make it a prerequisite for verifying static infra.
 - **`killport` dance for preview_start.** When the user's own `next dev` is running on port 3000, `preview_start` fails because Turbopack holds a single lock. Asked for permission to kill it; the user pre-authorized in this session's case. Future sessions: just ask.
+- **Draft persistence bug 1 (mobile QA): Discard wasn't actually discarding.** `clear()` removed storage, but the test form's follow-up `reset(defaultValues)` fired RHF's `watch` subscription, which scheduled a write 100ms later that re-created the draft with empty values. Fix: `ignoreWritesUntilRef` gates writes for one debounce window after `clear()`, and the watch handler updates `baselineRef` during that window so the post-discard state becomes the new "no need to persist" baseline. The lesson: when a hook clears state and the caller is expected to follow up with another state-mutating call (`reset()`), gate the side effect for at least one debounce window or the cleanup races the cleanup.
+- **Draft persistence bug 2 (mobile QA): pagehide on a totally untouched form wrote empty defaults.** That empty draft would resurrect the "Draft restored" pill on the next mount, even though the user never typed anything. Fix: initialize `baselineRef` with `JSON.stringify(form.getValues())` at hydrate time on **both** code paths (with-draft and no-draft — the no-draft early-return originally skipped it, which was the bug), and gate `watch` + `flushNow` on `valuesJson !== baselineRef.current`. The lesson: any persistence layer that writes on tab-close needs a "did anything actually change since hydration" check, or you'll resurrect ghost state.
+- **Verify the easy half of a fix doesn't blind you to the hard half.** Shipped the pagehide flush + 100ms debounce on the strength of "writes were getting lost." That fix landed (writes now reliably reach storage). But the next preview cycle surfaced bug 1 (Discard re-creates) and bug 2 (untouched form persists empty defaults), both of which were *latent in the original code* — the pagehide flush just made them more visible. Mobile QA only catches what mobile users do; desktop preview cycles catch what bugs latch onto. Worth doing both even when "verified live in dev" feels sufficient.
+- **window-exposed inspect functions are worth their <20 LOC.** `__bfDraftInspect()` made the difference between "I think the write didn't happen" and "I see the write happened with savedAt 1777809524741 and these specific values." The user can paste it into Web Inspector / DevTools and the failure mode is unambiguous. Standard pattern for Phase 6 client-side state hooks.
 
 ### Lessons learned from Phase 4 shipping
 
