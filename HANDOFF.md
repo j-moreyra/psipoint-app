@@ -620,3 +620,4 @@ Ordered by dependency / priority.
 4. `npm test && npm run build` to confirm the baseline is green
 5. Check `/dashboard`, `/settings/company`, and a device's test form in your local dev to orient on the current UI
 6. All MVP phases (1–5) are shipped. Next work is the "before first paying customer" track: real-device mobile QA (§ Active Issues has the checklist), Resend provisioning + verified domain, production Netlify site, Supabase Pro for PITR, Sentry, replacing the placeholder PWA icon. Post-MVP / v2 features are in Blueprint § 8.
+
