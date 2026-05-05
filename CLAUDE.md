@@ -114,11 +114,11 @@ it deletes all customers for the target company before inserting
 SEED_COMPANY_ID=<your-company-uuid> npm run seed
 ```
 
-Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`. The script
-refuses to run if `NEXT_PUBLIC_SUPABASE_URL` doesn't contain
-`backflo-dev` — keeps seed data strictly off production. The
-service-role key stays **dev-only**; it's never added to Netlify env
-(see `HANDOFF.md` § Key Decisions).
+Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.seed`. The script
+refuses to run if `NEXT_PUBLIC_SUPABASE_URL` doesn't contain the
+project ref listed in `SEED_ALLOWED_PROJECT_REF` — keeps seed data
+strictly off production. The service-role key stays **dev-only**;
+it's never added to Netlify env (see `HANDOFF.md` § Key Decisions).
 
 Find your company UUID via the Supabase SQL editor:
 `select id, name from companies;`

@@ -1,10 +1,12 @@
 # HANDOFF.md — Psipoint
 
-> Last updated: 2026-05-03. Phase 5 complete; mobile QA closed;
+> Last updated: 2026-05-04. Phase 5 complete; mobile QA closed;
 > draft-persistence patches landed; **rebranded BackFLO → Psipoint
-> (May 2026)**. Historical Phase 1–5 narrative below still says
-> "BackFLO" — those events literally happened under that name; the
-> codebase, brand, manifest, and PWA icon are now Psipoint.
+> (May 2026)** including dashboard renames (GitHub, Netlify, Supabase
+> label). Historical Phase 1–5 narrative below still says "BackFLO" —
+> those events literally happened under that name; the codebase,
+> brand, manifest, PWA icon, repo name, and deploy URL are now
+> Psipoint.
 > Next update: after first paying customer milestone (Resend
 > provisioning, prod Netlify site, Sentry).
 
@@ -48,7 +50,7 @@
 
 **Phase 5 (Polish + PWA) — complete on `main`. All MVP phases shipped.**
 
-- **GitHub:** https://github.com/j-moreyra/backflo-app (public)
+- **GitHub:** https://github.com/j-moreyra/psipoint-app (public)
 - **Active branch:** `main`
 - **Latest commit:** `8bf28a6 fix(forms): draft persistence — baseline check + post-discard write suppression`
 - Deployed to Netlify deploy preview. Production Netlify site not yet connected.
@@ -193,7 +195,7 @@ All company-scoped tables carry `company_id` and are behind RLS.
 ### Database (Supabase)
 
 - **Project ID:** `oscalardqnipswcdwhke`
-- **Name:** `backflo-dev`
+- **Name:** `psipoint-dev` (renamed from `backflo-dev` May 2026; project ID + URL + anon key unchanged)
 - **Region:** `us-east-1` (N. Virginia, closest AWS region to South Florida)
 - **Plan:** Free tier, $0/month
 - **URL:** https://oscalardqnipswcdwhke.supabase.co
@@ -234,11 +236,11 @@ The client sends 13 of the 17 params; the other 4 (`next_due_calculation_method`
 ### Deployment (Netlify)
 
 - **Site ID:** `9a327740-e6b0-4218-9e4c-d2986e10b6cb`
-- **Site name:** `backflo-app`
-- **Primary URL:** https://backflo-app.netlify.app
-- **Dashboard:** https://app.netlify.com/projects/backflo-app
+- **Site name:** `psipoint-app`
+- **Primary URL:** https://psipoint-app.netlify.app
+- **Dashboard:** https://app.netlify.com/projects/psipoint-app
 - **Team:** `moreyraj13` (Pro plan, team ID `699f4c962c9e3832fb5f816c`)
-- **GitHub integration:** Netlify site linked to `j-moreyra/backflo-app`. Pushes to `main` auto-deploy the primary URL; open PRs get ephemeral previews at `deploy-preview-N--backflo-app.netlify.app`. No manual deploys expected.
+- **GitHub integration:** Netlify site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy the primary URL; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
 - **Build:** `npm run build`, publish `.next`, Node 22
 - **Config:** [`netlify.toml`](netlify.toml) — Netlify's Next.js runtime v5 is auto-detected; no plugin declaration needed
 
@@ -265,11 +267,11 @@ A template lives at `.env.local.example` (gitignore whitelists this specific fil
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 **Supabase URL configuration:**
-- **Site URL:** `https://backflo-app.netlify.app`
+- **Site URL:** `https://psipoint-app.netlify.app`
 - **Redirect URLs:**
   - `http://localhost:3000/auth/callback` (dev)
-  - `https://backflo-app.netlify.app/auth/callback` (prod)
-  - `https://*--backflo-app.netlify.app/auth/callback` (deploy previews)
+  - `https://psipoint-app.netlify.app/auth/callback` (prod)
+  - `https://*--psipoint-app.netlify.app/auth/callback` (deploy previews)
 
 ### Migrations (forward-only; timestamped `YYYYMMDDHHMMSS_name.sql`)
 
@@ -380,7 +382,7 @@ Additional Phase 3 calls:
 - **Pivots considered + rejected**: Pressr (PRESSR. registered Principal-Register Class 9 software, near-fatal), various coined alternatives without enough product fit.
 - **Pick**: Psipoint. USPTO is empty for the exact mark + "psypoint" + "sipoint" (only DEAD/ABANDONED). Common-law clean (only meaningful collision is **psipoint.org** = PSI Philippines, a Makati-based leadership-training company in a different industry and country with no US filings). Domains available: psipoint.app (chosen), psipoint.io, psipoint.co, getpsipoint.com. psipoint.com taken since 2011 by a domain investor — left alone.
 - **What changed in the codebase**: brand-visible strings only (root metadata, app shell, auth shell, login/onboarding copy, dashboard tagline, settings copy, manifest name, PWA Ψ-monogram icon, SW cache key, localStorage draft key prefix `backflo:` → `psipoint:`, Nominatim UA, test fixtures, blueprint rename). Six small forward-only commits. Engineering term **"backflow"** stays everywhere it appears (cert filenames, email body, blueprint references) — that's the device class name, not our brand.
-- **What didn't change**: Supabase project name (`backflo-dev`), Netlify site name (`backflo-app`), GitHub repo name (`j-moreyra/backflo-app`), local directory `~/backflo-app`. All external resources keep their old names until the user does the dashboard renames; deferred to avoid coordinated cutovers mid-rebrand. URL `backflo-app.netlify.app` still works.
+- **Dashboard renames (followed up 2026-05-04)**: GitHub repo renamed to `j-moreyra/psipoint-app`, Netlify site renamed to `psipoint-app` (primary URL `psipoint-app.netlify.app`), Supabase project label renamed to `psipoint-dev` (project ID + URL + anon key unchanged — purely a display-name change). Supabase Site URL + Redirect URLs updated to the new Netlify domain. Local directory `~/backflo-app` left as-is for now; non-blocking.
 - **Trademark filing**: not yet filed. Recommended path is to consult a trademark attorney before filing, even with clean USPTO + common-law results. Not blocking shipping — can use the Psipoint mark in commerce now (Section 1(a) basis when filing) and the application date is what locks priority.
 
 ### Patterns adopted
@@ -594,9 +596,9 @@ Ordered by dependency / priority.
 
 ### Repos / accounts
 
-- **GitHub repo:** https://github.com/j-moreyra/backflo-app (public) ✓
-- **Supabase:** `backflo-dev` project active ✓
-- **Netlify:** site linked to `j-moreyra/backflo-app`. Pushes to `main` auto-deploy the primary URL at https://backflo-app.netlify.app; open PRs get ephemeral previews at `deploy-preview-N--backflo-app.netlify.app`. No manual deploys expected.
+- **GitHub repo:** https://github.com/j-moreyra/psipoint-app (public) ✓
+- **Supabase:** `psipoint-dev` project active ✓
+- **Netlify:** site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy the primary URL at https://psipoint-app.netlify.app; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
 - **Resend:** integration code shipped Phase 4 but account/API key + verified sender not yet provisioned. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` remain blank stubs in `.env.local.example`; populate both + add them to Netlify env + verify a domain before first paying customer.
 - **Stripe:** not yet set up (post-MVP)
 
@@ -610,8 +612,8 @@ Ordered by dependency / priority.
 - Supabase dashboard: https://supabase.com/dashboard/project/oscalardqnipswcdwhke
 - Supabase SQL editor: https://supabase.com/dashboard/project/oscalardqnipswcdwhke/sql/new
 - Supabase auth → URL Configuration: https://supabase.com/dashboard/project/oscalardqnipswcdwhke/auth/url-configuration
-- Netlify dashboard: https://app.netlify.com/projects/backflo-app
-- GitHub repo: https://github.com/j-moreyra/backflo-app
+- Netlify dashboard: https://app.netlify.com/projects/psipoint-app
+- GitHub repo: https://github.com/j-moreyra/psipoint-app
 
 ### How to pick up work in a new chat
 1. Read this file and `BackFLO_MVP_Blueprint.md`
