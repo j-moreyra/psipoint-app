@@ -53,7 +53,7 @@
 - **GitHub:** https://github.com/j-moreyra/psipoint-app (public)
 - **Active branch:** `main`
 - **Latest commit:** `8bf28a6 fix(forms): draft persistence — baseline check + post-discard write suppression`
-- Deployed to Netlify deploy preview. Production Netlify site not yet connected.
+- Deployed to Netlify production at https://psipoint.app (cutover 2026-05-10; see § 5).
 
 **Phase 3 delivery (15 commits, not yet squashed to a PR):**
 - **`search_devices_by_serial` RPC** — pg_trgm similarity() over the existing `idx_devices_serial_trgm` GIN index. SECURITY INVOKER; tunable threshold with a 0.3 floor (the `%` operator's default similarity cutoff). Joins in service_location + customer context so the search UI renders in one round-trip.
@@ -491,15 +491,11 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 
 ## 6. Active Issues
 
-**No blocking issues.** Build is clean, tests pass (462), deploy preview green, end-to-end certificate generation verified in the browser against the dev Supabase.
+**No blocking issues.** Build is clean, tests pass (572), production live at https://psipoint.app, end-to-end certificate generation + email send verified live (cutover 2026-05-10; see § 5).
 
 **Open items / risks (non-blocking):**
-- **Pick a domain** — backflo.app / backflo.com / getbackflo.com / backflo.io still unchecked.
-- **USPTO trademark search for "BackFLO"** — done; conflict found (Park Environmental Equipment owns BACKFLO Class 9 mark). Triggered the rebrand to **Psipoint**, which cleared USPTO + common-law searches on 2026-05-03. See Key Decisions § Rebrand.
-- **Production Netlify site not yet connected** — deploy preview only.
 - **Remove `https://psipoint-app.netlify.app/auth/callback` from Supabase redirect URLs after 2026-08-08** (90-day legacy fallback period).
-- **Resend API key not yet provisioned** — `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in `.env.local.example` are blank stubs. PDF generation works without them; email sending requires both to be set + a verified Resend sender. Needed before first paying customer.
-- **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, FIELD_LIMITS drift, due-status buckets, gauge-notice helpers, certificate data shaping, storage path builders, email recipient/payload builders (462 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch, `@react-pdf/renderer` rendering output, Resend SDK.
+- **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, FIELD_LIMITS drift, due-status buckets, gauge-notice helpers, certificate data shaping, storage path builders, email recipient/payload builders (572 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch, `@react-pdf/renderer` rendering output, Resend SDK.
 - **No Resend webhooks.** Bounces + complaints aren't tracked. First-customer milestone or before.
 - **No Supabase PITR.** Free tier doesn't offer point-in-time recovery. Once paying customers exist, upgrade is strongly recommended before schema changes that affect data.
 - **No error-reporting / observability.** No Sentry yet.
@@ -648,7 +644,7 @@ Ordered by dependency / priority.
 - **GitHub repo:** https://github.com/j-moreyra/psipoint-app (public) ✓
 - **Supabase:** `psipoint-dev` project active ✓
 - **Netlify:** site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy https://psipoint.app; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
-- **Resend:** integration code shipped Phase 4 but account/API key + verified sender not yet provisioned. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` remain blank stubs in `.env.local.example`; populate both + add them to Netlify env + verify a domain before first paying customer.
+- **Resend:** account provisioned; `psipoint.app` domain verified (cutover 2026-05-10). Production keys set as Netlify env vars (`RESEND_API_KEY` + `RESEND_FROM_EMAIL=certificates@psipoint.app`). `.env.local.example` keeps both as blank stubs — local dev doesn't send mail.
 - **Stripe:** not yet set up (post-MVP)
 
 ### Conventions (see `CLAUDE.md` for the full list)
