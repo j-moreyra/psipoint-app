@@ -396,6 +396,45 @@ Additional Phase 3 calls:
 
 ## 5. Prior Work History
 
+### Production cutover: psipoint.app live (2026-05-10)
+
+First go-live deployment. All ship-blockers from the prior § 7 "Active Issues" → "before first paying customer" track that depended on a real domain are now closed.
+
+**What landed:**
+- Domain `psipoint.app` registered via Cloudflare Registrar — $14.20/yr, auto-renew on, DNSSEC enabled, WHOIS privacy on. CNAME flattening at apex.
+- Six DNS records added to Cloudflare in one consolidated session:
+  - CNAME `@` → `apex-loadbalancer.netlify.com` (DNS only, grey-cloud)
+  - CNAME `www` → `psipoint-app.netlify.app` (DNS only, grey-cloud)
+  - TXT `resend._domainkey` → DKIM key (full `p=MIGfMA0...wIDAQAB`)
+  - MX `send` → `feedback-smtp.us-east-1.amazonses.com` priority 10
+  - TXT `send` → `v=spf1 include:amazonses.com ~all`
+  - TXT `_dmarc` → `v=DMARC1; p=none;`
+- Cloudflare SSL/TLS encryption mode set to Full (strict).
+- Resend account provisioned, domain `psipoint.app` verified (status: Verified across all 4 records). Region: N. Virginia (us-east-1) to match Supabase.
+- Resend API key `psipoint-prod` created (Sending access scope; "All domains" until paid plan exposes per-domain restriction).
+- Netlify production env vars set:
+  - `RESEND_API_KEY` (production context only)
+  - `RESEND_FROM_EMAIL=certificates@psipoint.app` (production context only)
+- Supabase auth URL configuration synced to live state:
+  - Site URL: `https://psipoint.app`
+  - Redirect URLs: dev localhost, apex prod, www prod, deploy-preview wildcard, legacy `psipoint-app.netlify.app/auth/callback` (kept as 90-day fallback, scheduled for removal 2026-08-08)
+- Codebase sweep: Nominatim User-Agent updated to `https://psipoint.app`; stale `backflo.{com,app}` Claude Code WebFetch allowlist entries removed. Engineering term "backflow" intentionally retained throughout email/cert paths and blueprint references — that's the device class name, not the brand.
+- First production cert email sent and delivered (test result `BV-RR-230`, recipient: founder's personal Gmail).
+
+**Lessons for the next session:**
+
+- **`@react-pdf/renderer` ↔ React 19 type drift wasn't the issue, but ambient type behavior on Netlify Functions runtime was an unexpected hour sink.** A spec misread on my part — I burned a long debug cycle thinking the request body had a trailing whitespace character because Resend's request-body viewer rendered it that way. The actual bug was that the Resend domain status was still "Not Started" — DNS had propagated but the **Verify DNS Records** button in the Resend dashboard was never clicked. The 403 error message ("Domain not verified") was literal and correct from request one. Lesson: when a service returns a domain-verification error, *always* re-check the dashboard's verification status before chasing client-side bugs. Don't assume "DNS propagated" equals "service has run its verification check."
+
+- **Resend domain verification is two steps, not one.** Step 1: add the records at the registrar so they resolve. Step 2: click "Verify DNS Records" in the Resend dashboard so Resend's verifier actually scans them and flips the status. Skipping step 2 leaves the domain in "Not Started" state forever, and every API send returns 403.
+
+- **Cloudflare Registrar's apex CNAME flattening + Netlify's `apex-loadbalancer.netlify.com` is the cleanest setup for `.app` domains.** The `.app` HSTS-preload requirement means everything must be HTTPS; setting Cloudflare records to **DNS only (grey cloud)** lets Netlify's Let's Encrypt cert provision normally. Going with `Proxied` (orange cloud) on the Netlify CNAMEs would have failed cert issuance — Cloudflare would have intercepted the HTTP-01 challenge before it reached Netlify origins.
+
+- **Trailing-whitespace defense in env-var reads is worth doing.** I went deep enough on the (incorrect) trailing-space theory that the cleanup pass didn't happen. Recommend a follow-up commit that adds `.trim()` to `process.env.RESEND_FROM_EMAIL` and `process.env.RESEND_API_KEY` reads in `src/lib/email/client.ts`, with a unit test covering the trimmed case. Cheap insurance against the next time someone fat-fingers a Netlify env var paste.
+
+- **`netlify env:get | cat -e` is the right command on macOS.** `cat -A` is Linux-only; macOS BSD `cat` rejects it. `cat -e` shows end-of-line markers as `$` and is sufficient to spot trailing whitespace.
+
+- **Multi-line shell paste through Claude's web UI can inject smart-quote characters that break zsh.** Hit `Ctrl+C` to escape the `quote>` prompt and paste commands one line at a time without the `# comment` lines.
+
 ### Phase 1 — Auth + Onboarding + Settings (shipped 2026-04-17)
 14 commits from repo init through onboarding polish. Delivered Supabase schema, RLS, the `create_company_and_first_tester` SECURITY DEFINER RPC, full auth flow (login/signup/reset/callback/signout), 2-step onboarding, app shell, dashboard stub, settings (profile + company), 3 migrations, 78 Vitest tests, and Netlify site provisioning. See commits through `8c86101`.
 
@@ -484,6 +523,13 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 ## 7. Next Steps
 
 Ordered by dependency / priority.
+
+**Production cutover ship-blockers (2026-05-10)** — partial:
+- [x] Production Netlify site connected
+- [x] Domain registered (`psipoint.app` via Cloudflare Registrar)
+- [x] Resend API key + `RESEND_FROM_EMAIL` provisioned and verified working end-to-end
+- [ ] Replace placeholder PWA brand icon (`public/icon.svg` still ships the sky-600 "BF" monogram from the BackFLO era)
+- [ ] Privacy policy + Terms of Service pages
 
 **Phase 2 — Customers + Service Locations + Devices CRUD** (blueprint §7 Phase 2, days 4–9) — ✅ complete:
 - [x] Customer list + detail + add/edit form
