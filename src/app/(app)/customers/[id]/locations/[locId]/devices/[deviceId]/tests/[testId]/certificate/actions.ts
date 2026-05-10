@@ -186,7 +186,8 @@ export async function sendCertificate(
       text: payload.text,
       attachment: payload.attachment,
     });
-  } catch {
+  } catch (err) {
+    console.error("[sendCertificate] resend send failed:", err);
     return { ok: false, stage: "email" };
   }
 

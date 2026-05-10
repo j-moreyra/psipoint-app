@@ -46,3 +46,6 @@ scripts/.uspto-out/
 
 # Local Netlify folder
 .netlify
+
+# Claude Code per-developer settings
+.claude/settings.local.json
