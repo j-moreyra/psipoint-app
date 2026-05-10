@@ -237,10 +237,10 @@ The client sends 13 of the 17 params; the other 4 (`next_due_calculation_method`
 
 - **Site ID:** `9a327740-e6b0-4218-9e4c-d2986e10b6cb`
 - **Site name:** `psipoint-app`
-- **Primary URL:** https://psipoint-app.netlify.app
+- **Primary URL:** https://psipoint.app
 - **Dashboard:** https://app.netlify.com/projects/psipoint-app
 - **Team:** `moreyraj13` (Pro plan, team ID `699f4c962c9e3832fb5f816c`)
-- **GitHub integration:** Netlify site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy the primary URL; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
+- **GitHub integration:** Netlify site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy `https://psipoint.app`; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
 - **Build:** `npm run build`, publish `.next`, Node 22
 - **Config:** [`netlify.toml`](netlify.toml) — Netlify's Next.js runtime v5 is auto-detected; no plugin declaration needed
 
@@ -267,11 +267,13 @@ A template lives at `.env.local.example` (gitignore whitelists this specific fil
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 **Supabase URL configuration:**
-- **Site URL:** `https://psipoint-app.netlify.app`
+- **Site URL:** `https://psipoint.app`
 - **Redirect URLs:**
   - `http://localhost:3000/auth/callback` (dev)
-  - `https://psipoint-app.netlify.app/auth/callback` (prod)
+  - `https://psipoint.app/auth/callback` (prod)
+  - `https://www.psipoint.app/auth/callback` (prod, www variant)
   - `https://*--psipoint-app.netlify.app/auth/callback` (deploy previews)
+  - `https://psipoint-app.netlify.app/auth/callback` (legacy fallback — remove after 2026-08-08)
 
 ### Migrations (forward-only; timestamped `YYYYMMDDHHMMSS_name.sql`)
 
@@ -456,6 +458,7 @@ Seven commits (`7d4b2e8` through `6a44341`) landed the full capture → PDF → 
 - **Pick a domain** — backflo.app / backflo.com / getbackflo.com / backflo.io still unchecked.
 - **USPTO trademark search for "BackFLO"** — done; conflict found (Park Environmental Equipment owns BACKFLO Class 9 mark). Triggered the rebrand to **Psipoint**, which cleared USPTO + common-law searches on 2026-05-03. See Key Decisions § Rebrand.
 - **Production Netlify site not yet connected** — deploy preview only.
+- **Remove `https://psipoint-app.netlify.app/auth/callback` from Supabase redirect URLs after 2026-08-08** (90-day legacy fallback period).
 - **Resend API key not yet provisioned** — `RESEND_API_KEY` and `RESEND_FROM_EMAIL` in `.env.local.example` are blank stubs. PDF generation works without them; email sending requires both to be set + a verified Resend sender. Needed before first paying customer.
 - **No pgTAP / Playwright yet.** Unit tests cover Zod schemas, helpers, the open-redirect guard, DB helper guards, geocoder parsing, FIELD_LIMITS drift, due-status buckets, gauge-notice helpers, certificate data shaping, storage path builders, email recipient/payload builders (462 tests). Not covered: RLS enforcement, signup RPC runtime guards, trigger math for all 4 due-date methods, end-to-end browser flow, live Nominatim fetch, `@react-pdf/renderer` rendering output, Resend SDK.
 - **No Resend webhooks.** Bounces + complaints aren't tracked. First-customer milestone or before.
@@ -598,7 +601,7 @@ Ordered by dependency / priority.
 
 - **GitHub repo:** https://github.com/j-moreyra/psipoint-app (public) ✓
 - **Supabase:** `psipoint-dev` project active ✓
-- **Netlify:** site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy the primary URL at https://psipoint-app.netlify.app; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
+- **Netlify:** site linked to `j-moreyra/psipoint-app`. Pushes to `main` auto-deploy https://psipoint.app; open PRs get ephemeral previews at `deploy-preview-N--psipoint-app.netlify.app`. No manual deploys expected.
 - **Resend:** integration code shipped Phase 4 but account/API key + verified sender not yet provisioned. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` remain blank stubs in `.env.local.example`; populate both + add them to Netlify env + verify a domain before first paying customer.
 - **Stripe:** not yet set up (post-MVP)
 
