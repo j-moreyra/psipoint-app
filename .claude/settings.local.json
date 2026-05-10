@@ -2,8 +2,6 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:backflo.com)",
-      "WebFetch(domain:backflo.app)",
       "WebFetch(domain:www.namecheap.com)",
       "WebFetch(domain:rdap.verisign.com)",
       "WebFetch(domain:rdap.nominet.uk)",
@@ -19,7 +17,8 @@
       "WebFetch(domain:www.nwpxpark.com)",
       "WebFetch(domain:get.app)",
       "WebFetch(domain:trademarks.justia.com)",
-      "WebFetch(domain:www.trademarkia.com)"
+      "WebFetch(domain:www.trademarkia.com)",
+      "Bash(python3 -m json.tool /Users/joaquinmoreyra/psipoint-app/.claude/settings.local.json)"
     ]
   }
 }

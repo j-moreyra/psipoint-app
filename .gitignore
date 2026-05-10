@@ -43,3 +43,6 @@ next-env.d.ts
 
 # one-off probe outputs (USPTO TM-Search captures, etc.)
 scripts/.uspto-out/
+
+# Local Netlify folder
+.netlify
